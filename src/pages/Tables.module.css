@@ -184,3 +184,101 @@
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     }
 }
+
+/* ---------- Table Total ---------- */
+.tableTotal {
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+/* ---------- Options Modal ---------- */
+.optionsOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal);
+    padding: var(--space-md);
+    animation: fadeIn var(--transition-fast) forwards;
+}
+
+.optionsModal {
+    width: 100%;
+    max-width: 320px;
+    background: var(--color-bg-card);
+    border-radius: var(--radius-xl);
+    padding: var(--space-lg);
+    animation: slideUp var(--transition-base) forwards;
+}
+
+.optionsTitle {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: var(--space-md);
+}
+
+.orderInfo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md);
+    background: var(--color-bg-input);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-md);
+    font-size: var(--font-size-sm);
+}
+
+.orderInfo strong {
+    color: var(--color-primary);
+    font-size: var(--font-size-lg);
+}
+
+.optionsButtons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+.optionBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: var(--color-bg-input);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-weight: 500;
+    transition: all var(--transition-fast);
+}
+
+.optionBtn:hover {
+    background: var(--color-bg-hover);
+}
+
+.optionBill {
+    background: linear-gradient(135deg, var(--color-success) 0%, #00a041 100%);
+    color: white;
+}
+
+.optionBill:hover {
+    filter: brightness(1.1);
+}
+
+.cancelBtn {
+    width: 100%;
+    padding: var(--space-sm);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    transition: color var(--transition-fast);
+}
+
+.cancelBtn:hover {
+    color: var(--color-text);
+}
