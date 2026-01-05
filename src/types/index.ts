@@ -1,0 +1,172 @@
+// ============================================
+// MALULOS POS - Tipos TypeScript
+// ============================================
+
+// ---------- Categorías ----------
+export interface Category {
+    id?: number
+    name: string
+    icon: string
+    order: number
+    isActive: boolean
+}
+
+// ---------- Tamaños ----------
+export interface ProductSize {
+    name: string  // 'pequeño', 'mediano', 'grande'
+    priceModifier: number  // precio adicional
+}
+
+// ---------- Modificadores ----------
+export interface Modifier {
+    id: string
+    name: string  // 'sin cebolla', 'extra queso'
+    priceModifier: number  // precio adicional
+    isDefault: boolean
+}
+
+export interface ModifierGroup {
+    name: string  // 'Ingredientes', 'Extras'
+    modifiers: Modifier[]
+    minSelect: number  // mínimo a seleccionar
+    maxSelect: number  // máximo a seleccionar
+}
+
+// ---------- Productos ----------
+export interface Product {
+    id?: number
+    categoryId: number
+    name: string
+    description: string
+    basePrice: number
+    image?: string
+    sizes: ProductSize[]
+    modifierGroups: ModifierGroup[]
+    isCombo: boolean
+    comboItems: ComboItem[]
+    isActive: boolean
+    createdAt: Date
+}
+
+export interface ComboItem {
+    categoryId: number  // categoría de donde elegir
+    name: string  // 'Bebida', 'Acompañamiento'
+    required: boolean
+}
+
+// ---------- Items del Carrito ----------
+export interface CartItem {
+    id: string  // UUID único para el item
+    product: Product
+    quantity: number
+    selectedSize?: ProductSize
+    selectedModifiers: Modifier[]
+    comboSelections: ComboSelection[]
+    notes: string
+    unitPrice: number
+    totalPrice: number
+}
+
+export interface ComboSelection {
+    comboItemName: string
+    selectedProduct: Product
+    selectedSize?: ProductSize
+    selectedModifiers: Modifier[]
+}
+
+// ---------- Mesas ----------
+export type TableStatus = 'available' | 'occupied' | 'paying' | 'reserved'
+
+export interface RestaurantTable {
+    id?: number
+    number: number
+    name: string
+    status: TableStatus
+    capacity: number
+    currentOrderId?: number
+    positionX: number
+    positionY: number
+}
+
+// ---------- Clientes ----------
+export interface Customer {
+    id?: number
+    name: string
+    phone: string
+    address: string
+    notes?: string
+    createdAt: Date
+    lastOrderAt?: Date
+}
+
+// ---------- Pedidos ----------
+export type OrderType = 'dine-in' | 'takeout' | 'delivery'
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'completed' | 'cancelled'
+export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'mixed'
+export type PaymentStatus = 'pending' | 'partial' | 'paid'
+
+export interface OrderItem {
+    id: string
+    productId: number
+    productName: string
+    quantity: number
+    selectedSize?: ProductSize
+    selectedModifiers: Modifier[]
+    comboSelections: ComboSelection[]
+    notes: string
+    unitPrice: number
+    totalPrice: number
+    status: 'pending' | 'preparing' | 'ready'
+}
+
+export interface Order {
+    id?: number
+    orderNumber: string  // Número visible: #001, #002
+    type: OrderType
+    tableId?: number
+    tableName?: string
+    customerId?: number
+    customerName?: string
+    customerPhone?: string
+    customerAddress?: string
+    items: OrderItem[]
+    subtotal: number
+    discount: number
+    tax: number
+    total: number
+    status: OrderStatus
+    paymentStatus: PaymentStatus
+    paymentMethod?: PaymentMethod
+    paidAmount: number
+    notes?: string
+    createdAt: Date
+    confirmedAt?: Date
+    readyAt?: Date
+    completedAt?: Date
+}
+
+// ---------- Caja ----------
+export interface CashRegister {
+    id?: number
+    openedAt: Date
+    closedAt?: Date
+    openingAmount: number
+    closingAmount?: number
+    cashSales: number
+    cardSales: number
+    transferSales: number
+    totalSales: number
+    ordersCount: number
+    notes?: string
+}
+
+// ---------- Configuración ----------
+export interface AppConfig {
+    id?: number
+    businessName: string
+    taxRate: number
+    currency: string
+    currencySymbol: string
+    printReceipt: boolean
+    soundEnabled: boolean
+}

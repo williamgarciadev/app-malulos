@@ -1,0 +1,186 @@
+.tables {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    animation: fadeIn var(--transition-base) forwards;
+}
+
+/* ---------- Header ---------- */
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.title {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+.legendDot {
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-full);
+}
+
+.legendDot.success {
+    background: var(--color-success);
+}
+
+.legendDot.warning {
+    background: var(--color-warning);
+}
+
+.legendDot.danger {
+    background: var(--color-danger);
+}
+
+.legendDot.info {
+    background: var(--color-info);
+}
+
+/* ---------- Grid ---------- */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--space-md);
+}
+
+/* ---------- Table Card ---------- */
+.tableCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    padding: var(--space-lg);
+    background: var(--color-bg-card);
+    border-radius: var(--radius-lg);
+    border: 2px solid transparent;
+    transition: all var(--transition-fast);
+    min-height: 140px;
+    position: relative;
+    overflow: hidden;
+}
+
+.tableCard::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+}
+
+.tableCard.success::before {
+    background: var(--color-success);
+}
+
+.tableCard.warning::before {
+    background: var(--color-warning);
+}
+
+.tableCard.danger::before {
+    background: var(--color-danger);
+}
+
+.tableCard.info::before {
+    background: var(--color-info);
+}
+
+.tableCard:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.tableCard:active {
+    transform: scale(0.98);
+}
+
+.tableCard.success:hover {
+    border-color: var(--color-success);
+}
+
+.tableCard.warning:hover {
+    border-color: var(--color-warning);
+}
+
+.tableCard.danger:hover {
+    border-color: var(--color-danger);
+}
+
+.tableCard.info:hover {
+    border-color: var(--color-info);
+}
+
+.tableNumber {
+    font-size: var(--font-size-3xl);
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.tableName {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.tableInfo {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+.tableStatus {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: var(--radius-full);
+    margin-top: var(--space-xs);
+}
+
+.statusSuccess {
+    background: rgba(0, 200, 81, 0.15);
+    color: var(--color-success);
+}
+
+.statusWarning {
+    background: rgba(255, 187, 51, 0.15);
+    color: var(--color-warning);
+}
+
+.statusDanger {
+    background: rgba(255, 68, 68, 0.15);
+    color: var(--color-danger);
+}
+
+.statusInfo {
+    background: rgba(51, 181, 229, 0.15);
+    color: var(--color-info);
+}
+
+/* ---------- Responsive ---------- */
+@media (min-width: 768px) {
+    .grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+}

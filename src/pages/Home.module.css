@@ -1,0 +1,189 @@
+.home {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    animation: fadeIn var(--transition-base) forwards;
+}
+
+/* ---------- Greeting ---------- */
+.greeting {
+    text-align: center;
+    padding: var(--space-lg) 0;
+}
+
+.title {
+    font-size: var(--font-size-3xl);
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: var(--space-sm);
+}
+
+.subtitle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    text-transform: capitalize;
+}
+
+/* ---------- Stats ---------- */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--space-md);
+}
+
+.statCard {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background: var(--color-bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform var(--transition-fast);
+}
+
+.statCard:hover {
+    transform: translateY(-2px);
+}
+
+.statIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    flex-shrink: 0;
+}
+
+.statPrimary .statIcon {
+    background: rgba(255, 107, 53, 0.15);
+    color: var(--color-primary);
+}
+
+.statSecondary .statIcon {
+    background: rgba(78, 205, 196, 0.15);
+    color: var(--color-secondary);
+}
+
+.statInfo .statIcon {
+    background: rgba(51, 181, 229, 0.15);
+    color: var(--color-info);
+}
+
+.statInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.statValue {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.statLabel {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+/* ---------- Actions ---------- */
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.sectionTitle {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.actionsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-md);
+}
+
+.actionCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    background: var(--color-bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all var(--transition-fast);
+    min-height: 120px;
+}
+
+.actionCard:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.actionCard:active {
+    transform: scale(0.98);
+}
+
+.actionIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-full);
+}
+
+.actionPrimary .actionIcon {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+}
+
+.actionSecondary .actionIcon {
+    background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-secondary-dark) 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+}
+
+.actionInfo .actionIcon {
+    background: linear-gradient(135deg, var(--color-info) 0%, #2196F3 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(51, 181, 229, 0.3);
+}
+
+.actionWarning .actionIcon {
+    background: linear-gradient(135deg, var(--color-warning) 0%, #FF9800 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 187, 51, 0.3);
+}
+
+.actionLabel {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text);
+    text-align: center;
+}
+
+/* ---------- Responsive ---------- */
+@media (min-width: 768px) {
+    .actionsGrid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .stats {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
