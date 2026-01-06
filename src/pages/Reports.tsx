@@ -15,7 +15,8 @@ import {
     Loader2,
     RefreshCw,
     CreditCard,
-    LayoutGrid
+    LayoutGrid,
+    X
 } from 'lucide-react'
 import type { Order, Product, Category } from '@/types'
 import styles from './Reports.module.css'
@@ -29,6 +30,7 @@ export function Reports() {
     const [categories, setCategories] = useState<Category[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isRefreshing, setIsRefreshing] = useState(false)
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false)
 
     const loadData = useCallback(async (isRefresh = false) => {
         if (isRefresh) setIsRefreshing(true);
@@ -425,43 +427,224 @@ export function Reports() {
                 </div>
             </div>
 
-            {/* Tabla de pedidos recientes */}
-            <div className={styles.recentOrders}>
-                <div className={styles.sectionHeader}>
-                    <h3>Pedidos Recientes</h3>
-                    <button className={styles.viewAll}>Ver todo <ChevronRight size={16} /></button>
-                </div>
-                <div className={styles.tableContainer}>
-                    <table className={styles.table}>
-                        <thead>
-                            <tr>
-                                <th>Pedido</th>
-                                <th>Hora</th>
-                                <th>Mesa</th>
-                                <th>Método</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {completedOrders.slice(-5).reverse().map((order) => (
-                                <tr key={order.id}>
-                                    <td>
-                                        <div className={styles.orderId}>#{order.orderNumber}</div>
-                                    </td>
-                                    <td>{new Date(order.completedAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                                    <td>Mesa {order.tableId}</td>
-                                    <td>
-                                        <span className={`${styles.badge} ${styles[order.paymentMethod || 'cash']}`}>
-                                            {order.paymentMethod === 'cash' ? 'Efectivo' : 'Tarjeta'}
-                                        </span>
-                                    </td>
-                                    <td className={styles.bold}>{formatPrice(order.total)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    )
-}
+                        {/* Tabla de pedidos recientes */}
+
+                        <div className={styles.recentOrders}>
+
+                            <div className={styles.sectionHeader}>
+
+                                <h3>Pedidos Recientes</h3>
+
+                                <button 
+
+                                    className={styles.viewAll}
+
+                                    onClick={() => setIsHistoryOpen(true)}
+
+                                >
+
+                                    Ver todo <ChevronRight size={16} />
+
+                                </button>
+
+                            </div>
+
+                            <div className={styles.tableContainer}>
+
+                                <table className={styles.table}>
+
+                                    <thead>
+
+                                        <tr>
+
+                                            <th>Pedido</th>
+
+                                            <th>Hora</th>
+
+                                            <th>Mesa</th>
+
+                                            <th>Método</th>
+
+                                            <th>Total</th>
+
+                                        </tr>
+
+                                    </thead>
+
+                                    <tbody>
+
+                                        {completedOrders.slice(-5).reverse().map((order) => (
+
+                                            <tr key={order.id}>
+
+                                                <td>
+
+                                                    <div className={styles.orderId}>#{order.orderNumber}</div>
+
+                                                </td>
+
+                                                <td>{new Date(order.completedAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+
+                                                <td>{order.tableName || `Mesa ${order.tableId}`}</td>
+
+                                                <td>
+
+                                                    <span className={`${styles.badge} ${styles[order.paymentMethod || 'cash']}`}>
+
+                                                        {order.paymentMethod === 'cash' ? 'Efectivo' : 
+
+                                                         order.paymentMethod === 'card' ? 'Tarjeta' :
+
+                                                         order.paymentMethod === 'transfer' ? 'Transferencia' : 'Mixto'}
+
+                                                    </span>
+
+                                                </td>
+
+                                                <td className={styles.bold}>{formatPrice(order.total)}</td>
+
+                                            </tr>
+
+                                        ))}
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </div>
+
+            
+
+                        {/* Modal de Historial Completo */}
+
+                        {isHistoryOpen && (
+
+                            <div className={styles.modalOverlay} onClick={() => setIsHistoryOpen(false)}>
+
+                                <div className={styles.historyModal} onClick={e => e.stopPropagation()}>
+
+                                    <div className={styles.modalHeader}>
+
+                                        <div>
+
+                                            <h2>Historial de Pedidos</h2>
+
+                                            <p>{periodLabels[period]} ({completedOrders.length} pedidos)</p>
+
+                                        </div>
+
+                                        <button className={styles.closeBtn} onClick={() => setIsHistoryOpen(false)}>
+
+                                            <X size={24} />
+
+                                        </button>
+
+                                    </div>
+
+                                    <div className={styles.modalContent}>
+
+                                        <div className={styles.tableContainer}>
+
+                                            <table className={styles.table}>
+
+                                                <thead>
+
+                                                    <tr>
+
+                                                        <th>Pedido</th>
+
+                                                        <th>Fecha y Hora</th>
+
+                                                        <th>Mesa</th>
+
+                                                        <th>Tipo</th>
+
+                                                        <th>Método</th>
+
+                                                        <th>Total</th>
+
+                                                    </tr>
+
+                                                </thead>
+
+                                                <tbody>
+
+                                                    {[...completedOrders].reverse().map((order) => (
+
+                                                        <tr key={order.id}>
+
+                                                            <td>
+
+                                                                <div className={styles.orderId}>#{order.orderNumber}</div>
+
+                                                            </td>
+
+                                                            <td>
+
+                                                                <div className={styles.dateTime}>
+
+                                                                    <span>{new Date(order.completedAt!).toLocaleDateString()}</span>
+
+                                                                    <span className={styles.timeText}>{new Date(order.completedAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+
+                                                                </div>
+
+                                                            </td>
+
+                                                            <td>{order.tableName || (order.tableId ? `Mesa ${order.tableId}` : '-')}</td>
+
+                                                            <td>
+
+                                                                <span className={styles.orderTypeText}>
+
+                                                                    {order.type === 'dine-in' ? 'Salón' :
+
+                                                                     order.type === 'takeout' ? 'Para llevar' : 'Domicilio'}
+
+                                                                </span>
+
+                                                            </td>
+
+                                                            <td>
+
+                                                                <span className={`${styles.badge} ${styles[order.paymentMethod || 'cash']}`}>
+
+                                                                    {order.paymentMethod === 'cash' ? 'Efectivo' : 
+
+                                                                     order.paymentMethod === 'card' ? 'Tarjeta' :
+
+                                                                     order.paymentMethod === 'transfer' ? 'Transferencia' : 'Mixto'}
+
+                                                                </span>
+
+                                                            </td>
+
+                                                            <td className={styles.bold}>{formatPrice(order.total)}</td>
+
+                                                        </tr>
+
+                                                    ))}
+
+                                                </tbody>
+
+                                            </table>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        )}
+
+                    </div>
+
+                )
+
+            }
+
+            
