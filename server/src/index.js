@@ -1,23 +1,32 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { Product } from './models/Product.js';
 import { Order } from './models/Order.js';
 import { Category, RestaurantTable, User, CashSession, Config } from './models/index.js';
 import { Customer } from './models/Customer.js';
 import { initTelegramBot } from './services/telegramBot.js';
-import { Customer as CustomerModel } from './models/Customer.js'; // Importar modelo separado
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Inicializar Bot de Telegram (usar token de variable de entorno o pasar directamente)
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-initTelegramBot(BOT_TOKEN);
-
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Servir archivos estáticos del Frontend (Vite compila en /dist)
+const frontendPath = path.join(__dirname, '../../dist');
+app.use(express.static(frontendPath));
+
+// Inicializar Bot de Telegram
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+initTelegramBot(BOT_TOKEN);
+
 
 // ===== PRODUCTOS =====
 app.get('/api/products', (req, res) => {
@@ -367,6 +376,11 @@ app.put('/api/config', (req, res) => {
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Malulos POS API running' });
+});
+
+// Manejar cualquier otra ruta con el index.html del frontend (SPA)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 // Iniciar servidor

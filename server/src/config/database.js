@@ -1,7 +1,9 @@
 import Database from 'better-sqlite3';
 import { join } from 'path';
 
-const dbPath = join(process.cwd(), 'malulos.db');
+// En Render, usaremos una ruta persistente (/var/lib/data/malulos.db)
+// En local, usaremos el valor por defecto
+const dbPath = process.env.DATABASE_PATH || join(process.cwd(), 'malulos.db');
 export const db = new Database(dbPath);
 
 // Asegurar integridad referencial

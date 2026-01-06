@@ -10,7 +10,10 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "init-db": "cd server && npm run init-db"
+    "init-db": "cd server && npm run init-db",
+    "install:all": "npm install && cd server && npm install",
+    "render:build": "npm run install:all && npm run build",
+    "start": "cd server && npm start"
   },
   "dependencies": {
     "jspdf": "^4.0.0",
