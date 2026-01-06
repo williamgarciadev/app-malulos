@@ -1,25 +1,3 @@
-import { useState, useEffect, useCallback } from 'react'
-import { ordersApi } from '@/services/api'
-import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    LineChart, Line, Cell
-} from 'recharts'
-import {
-    TrendingUp,
-    ShoppingBag,
-    Clock,
-    ArrowUpRight,
-    ArrowDownRight,
-    ChevronRight,
-    Calendar,
-    Loader2,
-    RefreshCw
-} from 'lucide-react'
-import type { Order } from '@/types'
-import styles from './Reports.module.css'
-
-type Period = 'today' | 'week' | 'month' | 'all'
-
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { ordersApi, productsApi, categoriesApi } from '@/services/api'
 import {
@@ -36,7 +14,6 @@ import {
     Calendar,
     Loader2,
     RefreshCw,
-    PieChart as PieChartIcon,
     CreditCard,
     LayoutGrid
 } from 'lucide-react'
@@ -259,25 +236,6 @@ export function Reports() {
         )
     }
 
-
-
-    const formatPrice = (price: number) => {
-        return new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            minimumFractionDigits: 0
-        }).format(price)
-    }
-
-    const COLORS = ['#FF6B35', '#4ECDC4', '#FFD166', '#06D6A0', '#118AB2']
-
-    const periodLabels = {
-        today: 'Hoy',
-        week: 'Última Semana',
-        month: 'Último Mes',
-        all: 'Todo'
-    }
-
     return (
         <div className={styles.reportsPage}>
             <header className={styles.header}>
@@ -288,7 +246,7 @@ export function Reports() {
                 <div className={styles.headerActions}>
                     <button 
                         className={styles.refreshBtn} 
-                        onClick={() => loadOrders(true)}
+                        onClick={() => loadData(true)}
                         disabled={isRefreshing}
                     >
                         <RefreshCw size={18} className={isRefreshing ? styles.spinning : ''} />
@@ -341,7 +299,7 @@ export function Reports() {
                     <div className={styles.kpiContent}>
                         <span className={styles.kpiLabel}>Pedidos Totales</span>
                         <span className={styles.kpiValue}>{totalOrders}</span>
-                        <span className={styles.kpiTarget}>Hoy</span>
+                        <span className={styles.kpiTarget}>{periodLabels[period]}</span>
                     </div>
                 </div>
 
