@@ -108,6 +108,9 @@ export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: P
             }
 
             setShowSuccess(true)
+            
+            // IMPRIMIR TICKET AUTOMÁTICAMENTE
+            handlePrint()
         } catch (error) {
             console.error('Error processing payment:', error)
             addToast('error', 'Error en el pago', 'No se pudo procesar el pago')

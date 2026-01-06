@@ -83,3 +83,61 @@ export const generateTicketPDF = (order: Order, config: AppConfig) => {
     // Guardar archivo
     doc.save(`Ticket_${order.orderNumber}.pdf`)
 }
+
+/**
+ * Genera un ticket simplificado para cocina (Comanda)
+ */
+export const generateKitchenTicket = (order: Order) => {
+    const doc = new jsPDF({
+        unit: 'mm',
+        format: [80, 150] // Formato ticket térmico corto
+    })
+
+    const width = doc.internal.pageSize.getWidth()
+    let y = 10
+
+    // Header Cocina
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text('COMANDA - COCINA', width / 2, y, { align: 'center' })
+
+    y += 8
+    doc.setFontSize(12)
+    doc.text(`ORDEN: ${order.orderNumber}`, width / 2, y, { align: 'center' })
+
+    y += 6
+    doc.setFontSize(10)
+    const typeLabel = order.type === 'dine-in' ? `MESA: ${order.tableName || order.tableId}` :
+                     order.type === 'takeout' ? 'PARA LLEVAR' : 'DOMICILIO'
+    doc.text(typeLabel, width / 2, y, { align: 'center' })
+
+    y += 6
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Hora: ${new Date().toLocaleTimeString()}`, width / 2, y, { align: 'center' })
+
+    y += 2
+    doc.line(5, y, width - 5, y)
+    y += 5
+
+    // Items (Sin precios)
+    const tableData = order.items.map(item => [
+        `${item.quantity}x`,
+        `${item.productName}${item.selectedSize ? ` (${item.selectedSize.name})` : ''}\n${item.selectedModifiers.map(m => `+ ${m.name}`).join('\n')}${item.notes ? `\n*NOTA: ${item.notes}*` : ''}`
+    ])
+
+    autoTable(doc, {
+        startY: y,
+        theme: 'plain',
+        margin: { left: 5, right: 5 },
+        body: tableData,
+        styles: { fontSize: 10, cellPadding: 1, fontStyle: 'bold' },
+        columnStyles: {
+            0: { cellWidth: 10 },
+            1: { cellWidth: 60 }
+        }
+    })
+
+    // Guardar archivo
+    doc.save(`Comanda_${order.orderNumber}.pdf`)
+}

@@ -3,6 +3,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { fetchApi } from '@/services/api'
 import { useCartStore } from '@/stores/cartStore'
 import { useToast } from '@/context/ToastContext'
+import { generateKitchenTicket } from '@/services/ticketService'
 import {
     Plus,
     Minus,
@@ -175,6 +176,12 @@ export function Orders() {
             
             // Usar el número real devuelto por el servidor
             const realOrderNumber = createdOrder?.orderNumber || 'Nueva';
+            
+            // IMPRIMIR COMANDA
+            if (createdOrder) {
+                generateKitchenTicket(createdOrder);
+            }
+
             addToast('success', 'Pedido enviado', `Orden ${realOrderNumber} enviada a cocina`)
             
             navigate('/kitchen')
