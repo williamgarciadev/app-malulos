@@ -1,4 +1,5 @@
 import { db } from '../config/database.js';
+import { Customer } from './Customer.js';
 
 // Modelo de Categorías
 export class Category {
@@ -185,3 +186,7 @@ export class Config {
         return this.get();
     }
 }
+
+export {
+    Customer
+};
