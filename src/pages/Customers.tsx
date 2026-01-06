@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { fetchApi, customersApi } from '@/services/api'
 import { useToast } from '@/context/ToastContext'
 import {
-    Users,
     Search,
     Plus,
     Edit2,
@@ -12,7 +11,6 @@ import {
     Calendar,
     X,
     Loader2,
-    MoreHorizontal,
     ShoppingBag
 } from 'lucide-react'
 import type { Customer } from '@/types'
@@ -82,7 +80,10 @@ export function Customers() {
                 })
                 addToast('success', 'Cliente actualizado', 'Los datos se guardaron correctamente')
             } else {
-                await customersApi.create(formData)
+                await customersApi.create({
+                    ...formData,
+                    createdAt: new Date()
+                })
                 addToast('success', 'Cliente registrado', 'El nuevo cliente ha sido creado')
             }
             setIsHistoryOpen(false)

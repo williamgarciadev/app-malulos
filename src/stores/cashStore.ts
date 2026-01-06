@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { fetchApi } from '@/services/api'
-import type { CashSession, CashMovement } from '@/types'
+import type { CashSession } from '@/types'
 
 interface CashState {
     currentSession: CashSession | null
@@ -61,7 +61,7 @@ export const useCashStore = create<CashState>((set, get) => ({
                 notes
             }
 
-            const closedSession = await fetchApi<CashSession>(`/cash-sessions/${currentSession.id}/close`, {
+            await fetchApi<CashSession>(`/cash-sessions/${currentSession.id}/close`, {
                 method: 'POST',
                 body: JSON.stringify(closeData)
             })
@@ -73,7 +73,7 @@ export const useCashStore = create<CashState>((set, get) => ({
         }
     },
 
-    addMovement: async (type: 'in' | 'out', amount: number, reason: string, userId: number, userName: string) => {
+    addMovement: async (type: 'in' | 'out', amount: number, _reason: string, _userId: number, _userName: string) => {
         const { currentSession } = get()
         if (!currentSession || !currentSession.id) return
 
