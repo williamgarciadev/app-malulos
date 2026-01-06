@@ -2,13 +2,15 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchApi } from '@/services/api'
 import { usePolling } from '@/hooks/usePolling'
+import { generateKitchenTicket } from '@/services/ticketService'
 import {
     Clock,
     Check,
     ChefHat,
     Home,
     Loader2,
-    AlertTriangle
+    AlertTriangle,
+    Printer
 } from 'lucide-react'
 import type { Order } from '@/types'
 import styles from './Kitchen.module.css'
@@ -158,6 +160,13 @@ export function Kitchen() {
                                         <span className={styles.orderNumber}>Pedido {order.orderNumber}</span>
                                         <span className={styles.orderTime}>{getTimeElapsed(order.createdAt)}</span>
                                     </div>
+                                    <button 
+                                        className={styles.printTicketBtn}
+                                        onClick={() => generateKitchenTicket(order)}
+                                        title="Reimprimir comanda"
+                                    >
+                                        <Printer size={18} />
+                                    </button>
                                 </div>
 
                                 <div className={styles.ticketInfo}>
@@ -240,6 +249,13 @@ export function Kitchen() {
                                             {getTimeElapsed(order.createdAt)}
                                         </span>
                                     </div>
+                                    <button 
+                                        className={styles.printTicketBtn}
+                                        onClick={() => generateKitchenTicket(order)}
+                                        title="Reimprimir comanda"
+                                    >
+                                        <Printer size={18} />
+                                    </button>
                                 </div>
 
                                 <div className={styles.ticketInfo}>
