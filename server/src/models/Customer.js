@@ -16,10 +16,15 @@ export class Customer {
         return customer ? this.parseCustomer(customer) : null;
     }
 
+    static getByTelegramId(telegramId) {
+        const customer = db.prepare('SELECT * FROM customers WHERE telegramId = ?').get(telegramId);
+        return customer ? this.parseCustomer(customer) : null;
+    }
+
     static create(data) {
         const stmt = db.prepare(`
-            INSERT INTO customers (name, phone, address, notes, createdAt)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO customers (name, phone, address, notes, telegramId, createdAt)
+            VALUES (?, ?, ?, ?, ?, ?)
         `);
 
         const result = stmt.run(
@@ -27,6 +32,7 @@ export class Customer {
             data.phone,
             data.address || '',
             data.notes || null,
+            data.telegramId || null,
             new Date().toISOString()
         );
 

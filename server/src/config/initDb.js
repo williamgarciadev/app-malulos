@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS customers (
     phone TEXT NOT NULL,
     address TEXT NOT NULL,
     notes TEXT,
+    telegramId TEXT UNIQUE,
     createdAt TEXT NOT NULL,
     lastOrderAt TEXT
 );
