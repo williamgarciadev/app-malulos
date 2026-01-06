@@ -1,73 +1,61 @@
-import { db } from '../config/database.js';
+import { pool } from '../config/database.js';
 
 export class Customer {
-    static getAll() {
-        const customers = db.prepare('SELECT * FROM customers ORDER BY name ASC').all();
-        return customers.map(this.parseCustomer);
+    static async getAll() {
+        const res = await pool.query('SELECT * FROM customers ORDER BY name ASC');
+        return res.rows;
     }
 
-    static getById(id) {
-        const customer = db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
-        return customer ? this.parseCustomer(customer) : null;
+    static async getById(id) {
+        const res = await pool.query('SELECT * FROM customers WHERE id = $1', [id]);
+        return res.rows[0];
     }
 
-    static getByPhone(phone) {
-        const customer = db.prepare('SELECT * FROM customers WHERE phone = ?').get(phone);
-        return customer ? this.parseCustomer(customer) : null;
+    static async getByPhone(phone) {
+        const res = await pool.query('SELECT * FROM customers WHERE phone = $1', [phone]);
+        return res.rows[0];
     }
 
-    static getByTelegramId(telegramId) {
-        const customer = db.prepare('SELECT * FROM customers WHERE telegramId = ?').get(telegramId);
-        return customer ? this.parseCustomer(customer) : null;
+    static async getByTelegramId(telegramId) {
+        const res = await pool.query('SELECT * FROM customers WHERE telegramId = $1', [telegramId]);
+        return res.rows[0];
     }
 
-    static create(data) {
-        const stmt = db.prepare(`
-            INSERT INTO customers (name, phone, address, notes, telegramId, createdAt)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `);
-
-        const result = stmt.run(
+    static async create(data) {
+        const res = await pool.query(`
+            INSERT INTO customers (name, phone, address, notes, telegramId)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING *
+        `, [
             data.name,
             data.phone,
             data.address || '',
             data.notes || null,
-            data.telegramId || null,
-            new Date().toISOString()
-        );
-
-        return this.getById(result.lastInsertRowid);
+            data.telegramId || null
+        ]);
+        return res.rows[0];
     }
 
-    static update(id, data) {
+    static async update(id, data) {
         const fields = [];
         const values = [];
+        let i = 1;
 
         Object.keys(data).forEach(key => {
-            if (key !== 'id' && key !== 'createdAt' && data[key] !== undefined) {
-                fields.push(`${key} = ?`);
+            if (!['id', 'createdAt'].includes(key) && data[key] !== undefined) {
+                fields.push(`${key} = $${i}`);
                 values.push(data[key]);
+                i++;
             }
         });
 
         values.push(id);
-
-        const stmt = db.prepare(`UPDATE customers SET ${fields.join(', ')} WHERE id = ?`);
-        stmt.run(...values);
-
-        return this.getById(id);
+        const res = await pool.query(`UPDATE customers SET ${fields.join(', ')} WHERE id = $${i} RETURNING *`, values);
+        return res.rows[0];
     }
 
-    static delete(id) {
-        db.prepare('DELETE FROM customers WHERE id = ?').run(id);
+    static async delete(id) {
+        await pool.query('DELETE FROM customers WHERE id = $1', [id]);
         return true;
-    }
-
-    static parseCustomer(customer) {
-        return {
-            ...customer,
-            createdAt: new Date(customer.createdAt),
-            lastOrderAt: customer.lastOrderAt ? new Date(customer.lastOrderAt) : undefined
-        };
     }
 }

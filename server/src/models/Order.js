@@ -1,81 +1,79 @@
-import { db } from '../config/database.js';
+import { pool } from '../config/database.js';
 
 export class Order {
-    static getAll() {
-        const orders = db.prepare('SELECT * FROM orders ORDER BY createdAt DESC').all();
-        return orders.map(this.parseOrder);
+    static async getAll() {
+        const res = await pool.query('SELECT * FROM orders ORDER BY createdAt DESC');
+        return res.rows;
     }
 
-    static getById(id) {
-        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
-        return order ? this.parseOrder(order) : null;
+    static async getById(id) {
+        const res = await pool.query('SELECT * FROM orders WHERE id = $1', [id]);
+        return res.rows[0];
     }
 
-    static getByStatus(status) {
-        const orders = db.prepare('SELECT * FROM orders WHERE status = ? ORDER BY createdAt DESC').all(status);
-        return orders.map(this.parseOrder);
+    static async getByStatus(status) {
+        const res = await pool.query('SELECT * FROM orders WHERE status = $1 ORDER BY createdAt DESC', [status]);
+        return res.rows;
     }
 
-    static getCompletedByDateRange(startDate, endDate) {
+    static async getCompletedByDateRange(startDate, endDate) {
         let query = "SELECT * FROM orders WHERE status = 'completed'";
         const params = [];
+        let i = 1;
 
         if (startDate) {
-            query += " AND completedAt >= ?";
+            query += ` AND completedAt >= $${i}`;
             params.push(startDate);
+            i++;
         }
 
         if (endDate) {
-            query += " AND completedAt <= ?";
+            query += ` AND completedAt <= $${i}`;
             params.push(endDate);
+            i++;
         }
 
         query += " ORDER BY completedAt DESC";
-
-        const orders = db.prepare(query).all(...params);
-        return orders.map(this.parseOrder);
+        const res = await pool.query(query, params);
+        return res.rows;
     }
 
-    static getActiveOrders() {
-        const orders = db.prepare(`
+    static async getActiveOrders() {
+        const res = await pool.query(`
             SELECT * FROM orders
             WHERE status IN ('pending', 'confirmed', 'preparing', 'ready')
             ORDER BY createdAt DESC
-        `).all();
-        return orders.map(this.parseOrder);
+        `);
+        return res.rows;
     }
 
-    static getByTable(tableId) {
-        const order = db.prepare(`
+    static async getByTable(tableId) {
+        const res = await pool.query(`
             SELECT * FROM orders
-            WHERE tableId = ? AND status IN ('pending', 'confirmed', 'preparing', 'ready')
+            WHERE tableId = $1 AND status IN ('pending', 'confirmed', 'preparing', 'ready')
             ORDER BY createdAt DESC
             LIMIT 1
-        `).get(tableId);
-        return order ? this.parseOrder(order) : null;
+        `, [tableId]);
+        return res.rows[0];
     }
 
-    static create(data) {
+    static async create(data) {
         // Generar número de orden secuencial diario
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const todayIso = today.toISOString();
-
-        const countStmt = db.prepare('SELECT COUNT(*) as count FROM orders WHERE createdAt >= ?');
-        const { count } = countStmt.get(todayIso);
         
-        const nextNumber = count + 1;
+        const countRes = await pool.query('SELECT COUNT(*) as count FROM orders WHERE createdAt >= $1', [today.toISOString()]);
+        const nextNumber = parseInt(countRes.rows[0].count) + 1;
         const orderNumber = `#${String(nextNumber).padStart(3, '0')}`;
 
-        const stmt = db.prepare(`
+        const res = await pool.query(`
             INSERT INTO orders (
                 orderNumber, type, tableId, tableName, customerId, customerName,
                 customerPhone, customerAddress, items, subtotal, discount, tax, total,
-                status, paymentStatus, paymentMethod, paidAmount, notes, origin, createdAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-
-        const result = stmt.run(
+                status, paymentStatus, paymentMethod, paidAmount, notes, origin
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+            RETURNING *
+        `, [
             orderNumber,
             data.type,
             data.tableId || null,
@@ -94,49 +92,36 @@ export class Order {
             data.paymentMethod || null,
             data.paidAmount || 0,
             data.notes || null,
-            data.origin || 'pos',
-            new Date().toISOString()
-        );
+            data.origin || 'pos'
+        ]);
 
-        return this.getById(result.lastInsertRowid);
+        return res.rows[0];
     }
 
-    static update(id, data) {
+    static async update(id, data) {
         const fields = [];
         const values = [];
+        let i = 1;
 
         Object.keys(data).forEach(key => {
-            if (key !== 'id' && key !== 'createdAt' && data[key] !== undefined) {
-                fields.push(`${key} = ?`);
+            if (!['id', 'createdAt'].includes(key) && data[key] !== undefined) {
+                fields.push(`${key} = $${i}`);
                 if (key === 'items') {
                     values.push(JSON.stringify(data[key]));
                 } else {
                     values.push(data[key]);
                 }
+                i++;
             }
         });
 
         values.push(id);
-
-        const stmt = db.prepare(`UPDATE orders SET ${fields.join(', ')} WHERE id = ?`);
-        stmt.run(...values);
-
-        return this.getById(id);
+        const res = await pool.query(`UPDATE orders SET ${fields.join(', ')} WHERE id = $${i} RETURNING *`, values);
+        return res.rows[0];
     }
 
-    static delete(id) {
-        db.prepare('DELETE FROM orders WHERE id = ?').run(id);
+    static async delete(id) {
+        await pool.query('DELETE FROM orders WHERE id = $1', [id]);
         return true;
-    }
-
-    static parseOrder(order) {
-        return {
-            ...order,
-            items: JSON.parse(order.items || '[]'),
-            createdAt: new Date(order.createdAt),
-            confirmedAt: order.confirmedAt ? new Date(order.confirmedAt) : undefined,
-            readyAt: order.readyAt ? new Date(order.readyAt) : undefined,
-            completedAt: order.completedAt ? new Date(order.completedAt) : undefined
-        };
     }
 }

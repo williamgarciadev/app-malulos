@@ -1,82 +1,69 @@
-import { db } from '../config/database.js';
+import { pool } from '../config/database.js';
 
 export class Product {
-    static getAll() {
-        const products = db.prepare('SELECT * FROM products WHERE isActive = 1').all();
-        return products.map(this.parseProduct);
+    static async getAll() {
+        const res = await pool.query('SELECT * FROM products ORDER BY name ASC');
+        return res.rows;
     }
 
-    static getById(id) {
-        const product = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
-        return product ? this.parseProduct(product) : null;
+    static async getById(id) {
+        const res = await pool.query('SELECT * FROM products WHERE id = $1', [id]);
+        return res.rows[0];
     }
 
-    static getByCategory(categoryId) {
-        const products = db.prepare('SELECT * FROM products WHERE categoryId = ? AND isActive = 1').all(categoryId);
-        return products.map(this.parseProduct);
+    static async getByCategory(categoryId) {
+        const res = await pool.query('SELECT * FROM products WHERE categoryId = $1', [categoryId]);
+        return res.rows;
     }
 
-    static create(data) {
-        const stmt = db.prepare(`
-            INSERT INTO products (categoryId, name, description, basePrice, sizes, modifierGroups, isCombo, comboItems, isActive, createdAt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-
-        const result = stmt.run(
+    static async create(data) {
+        const res = await pool.query(`
+            INSERT INTO products (
+                categoryId, name, description, basePrice, image, 
+                sizes, modifierGroups, isCombo, comboItems, isActive
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING *
+        `, [
             data.categoryId,
             data.name,
             data.description,
             data.basePrice,
+            data.image || null,
             JSON.stringify(data.sizes || []),
             JSON.stringify(data.modifierGroups || []),
             data.isCombo ? 1 : 0,
             JSON.stringify(data.comboItems || []),
-            data.isActive ? 1 : 0,
-            new Date().toISOString()
-        );
-
-        return this.getById(result.lastInsertRowid);
+            data.isActive ? 1 : 0
+        ]);
+        return res.rows[0];
     }
 
-    static update(id, data) {
-        const stmt = db.prepare(`
-            UPDATE products
-            SET categoryId = ?, name = ?, description = ?, basePrice = ?,
-                sizes = ?, modifierGroups = ?, isCombo = ?, comboItems = ?, isActive = ?
-            WHERE id = ?
-        `);
+    static async update(id, data) {
+        const fields = [];
+        const values = [];
+        let i = 1;
 
-        stmt.run(
-            data.categoryId,
-            data.name,
-            data.description,
-            data.basePrice,
-            JSON.stringify(data.sizes || []),
-            JSON.stringify(data.modifierGroups || []),
-            data.isCombo ? 1 : 0,
-            JSON.stringify(data.comboItems || []),
-            data.isActive ? 1 : 0,
-            id
-        );
+        Object.keys(data).forEach(key => {
+            if (key !== 'id' && key !== 'createdAt' && data[key] !== undefined) {
+                fields.push(`${key} = $${i}`);
+                if (['sizes', 'modifierGroups', 'comboItems'].includes(key)) {
+                    values.push(JSON.stringify(data[key]));
+                } else if (key === 'isActive' || key === 'isCombo') {
+                    values.push(data[key] ? 1 : 0);
+                } else {
+                    values.push(data[key]);
+                }
+                i++;
+            }
+        });
 
-        return this.getById(id);
+        values.push(id);
+        const res = await pool.query(`UPDATE products SET ${fields.join(', ')} WHERE id = $${i} RETURNING *`, values);
+        return res.rows[0];
     }
 
-    static delete(id) {
-        db.prepare('DELETE FROM products WHERE id = ?').run(id);
+    static async delete(id) {
+        await pool.query('DELETE FROM products WHERE id = $1', [id]);
         return true;
-    }
-
-    // Helper para parsear JSON fields
-    static parseProduct(product) {
-        return {
-            ...product,
-            sizes: JSON.parse(product.sizes || '[]'),
-            modifierGroups: JSON.parse(product.modifierGroups || '[]'),
-            comboItems: JSON.parse(product.comboItems || '[]'),
-            isCombo: Boolean(product.isCombo),
-            isActive: Boolean(product.isActive),
-            createdAt: new Date(product.createdAt)
-        };
     }
 }

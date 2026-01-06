@@ -3,18 +3,12 @@ import { Product } from '../models/Product.js';
 import { Category, Customer } from '../models/index.js';
 import { Order } from '../models/Order.js';
 
-// Mapa temporal para guardar carritos y estados de usuarios en memoria
 const userSessions = new Map();
 
 export const initTelegramBot = (token) => {
-    if (!token) {
-        console.warn('⚠️ No se proporcionó TELEGRAM_BOT_TOKEN. El bot no se iniciará.');
-        return null;
-    }
-
+    if (!token) return null;
     const bot = new Telegraf(token);
 
-    // Helper para obtener/crear sesión
     const getSession = (chatId) => {
         if (!userSessions.has(chatId)) {
             userSessions.set(chatId, { items: [], draftItem: null, state: 'idle', customer: null });
@@ -22,66 +16,46 @@ export const initTelegramBot = (token) => {
         return userSessions.get(chatId);
     };
 
-    // Middleware para cargar cliente
     bot.use(async (ctx, next) => {
         if (!ctx.chat) return next();
         const session = getSession(ctx.chat.id);
         if (!session.customer) {
-            const customer = Customer.getByTelegramId(String(ctx.chat.id));
+            const customer = await Customer.getByTelegramId(String(ctx.chat.id));
             if (customer) session.customer = customer;
         }
         return next();
     });
 
-    // --- BIENVENIDA ---
     bot.start(async (ctx) => {
         const session = getSession(ctx.chat.id);
         session.state = 'idle';
-        
         let welcomeMsg = `¡Bienvenido a Malulos! 🍔\n\n`;
-        
-        if (session.customer) {
-            welcomeMsg += `Hola de nuevo, *${session.customer.name}*. 👋\n¡Qué bueno verte por aquí!`;
-        } else {
+        if (session.customer) welcomeMsg += `Hola de nuevo, *${session.customer.name}*. 👋`;
+        else {
             welcomeMsg += `Parece que es tu primera vez por aquí. 😊\nPara empezar, por favor dinos tu nombre completo:`;
             session.state = 'register_name';
         }
-
-        return ctx.reply(welcomeMsg, {
-            parse_mode: 'Markdown',
-            ...Markup.keyboard([
-                ['📖 Ver Menú', '🛒 Mi Carrito'],
-                ['✅ Finalizar Pedido', '❌ Vaciar Carrito']
-            ]).resize()
-        });
+        return ctx.reply(welcomeMsg, { parse_mode: 'Markdown', ...Markup.keyboard([['📖 Ver Menú', '🛒 Mi Carrito'], ['✅ Finalizar Pedido', '❌ Vaciar Carrito']]).resize() });
     });
 
-    // --- FLUJO DE REGISTRO ---
     bot.on('text', async (ctx, next) => {
         const session = getSession(ctx.chat.id);
-        
         if (session.state === 'register_name') {
             session.tempCustomer = { name: ctx.message.text, telegramId: String(ctx.chat.id) };
             session.state = 'register_phone';
-            return ctx.reply(`Mucho gusto, ${ctx.message.text}. 👋\n¿Cuál es tu número de teléfono / WhatsApp?`);
+            return ctx.reply(`Mucho gusto, ${ctx.message.text}. 👋\n¿Cuál es tu número de teléfono?`);
         }
-
         if (session.state === 'register_phone') {
             session.tempCustomer.phone = ctx.message.text;
             session.state = 'register_address';
             return ctx.reply(`¡Gracias! Por último, ¿a qué dirección enviamos tus pedidos? 📍`);
         }
-
         if (session.state === 'register_address') {
             session.tempCustomer.address = ctx.message.text;
-            const newCustomer = Customer.create(session.tempCustomer);
-            session.customer = newCustomer;
+            session.customer = await Customer.create(session.tempCustomer);
             session.state = 'idle';
-            delete session.tempCustomer;
-            
-            return ctx.reply(`¡Registro completado! 🎉\nYa puedes empezar a pedir tus hamburguesas favoritas.\n\nEscribe /menu o usa los botones de abajo.`);
+            return ctx.reply(`¡Registro completado! 🎉 Ya puedes pedir con /menu.`);
         }
-
         if (session.state === 'awaiting_note' && session.draftItem) {
             session.draftItem.notes = ctx.message.text;
             session.state = 'idle';
@@ -89,13 +63,11 @@ export const initTelegramBot = (token) => {
             await showProductConfig(ctx, session);
             return;
         }
-        
         return next();
     });
 
-    // --- MOSTRAR CATEGORÍAS ---
     const showMenu = async (ctx) => {
-        const categories = Category.getAll().filter(c => c.isActive);
+        const categories = (await Category.getAll()).filter(c => c.isActive);
         const buttons = categories.map(cat => [Markup.button.callback(cat.name, `cat_${cat.id}`)]);
         await ctx.reply('Selecciona una categoría:', Markup.inlineKeyboard(buttons));
     };
@@ -103,25 +75,17 @@ export const initTelegramBot = (token) => {
     bot.hears('📖 Ver Menú', showMenu);
     bot.command('menu', showMenu);
 
-    // --- MANEJO DE CATEGORÍAS ---
     bot.action(/^cat_(\d+)$/, async (ctx) => {
         const catId = ctx.match[1];
-        const products = Product.getByCategory(catId).filter(p => p.isActive);
-        
+        const products = (await Product.getByCategory(catId)).filter(p => p.isActive);
         if (products.length === 0) return ctx.answerCbQuery('No hay productos aquí.');
-
         const buttons = products.map(p => [Markup.button.callback(`${p.name} - $${p.basePrice.toLocaleString()}`, `prod_${p.id}`)]);
-        buttons.push([Markup.button.callback('⬅️ Volver a categorías', 'back_to_cats')]);
+        buttons.push([Markup.button.callback('⬅️ Volver', 'back_to_cats')]);
         await ctx.editMessageText('Elige un producto:', Markup.inlineKeyboard(buttons));
     });
 
-    bot.action('back_to_cats', async (ctx) => {
-        const categories = Category.getAll().filter(c => c.isActive);
-        const buttons = categories.map(cat => [Markup.button.callback(cat.name, `cat_${cat.id}`)]);
-        await ctx.editMessageText('Selecciona una categoría:', Markup.inlineKeyboard(buttons));
-    });
+    bot.action('back_to_cats', showMenu);
 
-    // --- CONFIGURAR PRODUCTO ---
     const showProductConfig = async (ctx, session) => {
         const p = session.draftItem;
         let text = `*${p.productName}*\nBase: $${p.unitPrice.toLocaleString()}\n`;
@@ -130,7 +94,7 @@ export const initTelegramBot = (token) => {
         text += `\n*Subtotal: $${p.totalPrice.toLocaleString()}*`;
 
         const buttons = [];
-        const fullProduct = Product.getById(p.productId);
+        const fullProduct = await Product.getById(p.productId);
         if (fullProduct.modifierGroups) {
             fullProduct.modifierGroups.forEach((group, gIdx) => {
                 group.modifiers.forEach((mod, mIdx) => {
@@ -142,14 +106,12 @@ export const initTelegramBot = (token) => {
         buttons.push([Markup.button.callback('📝 Agregar Nota', 'add_note')]);
         buttons.push([Markup.button.callback('🛒 AÑADIR AL CARRITO', 'confirm_item')]);
         buttons.push([Markup.button.callback('❌ Cancelar', 'back_to_cats')]);
-
         if (ctx.callbackQuery) await ctx.editMessageText(text, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) });
         else await ctx.reply(text, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) });
     };
 
     bot.action(/^prod_(\d+)$/, async (ctx) => {
-        const prodId = ctx.match[1];
-        const product = Product.getById(prodId);
+        const product = await Product.getById(ctx.match[1]);
         const session = getSession(ctx.chat.id);
         session.draftItem = { productId: product.id, productName: product.name, quantity: 1, unitPrice: product.basePrice, totalPrice: product.basePrice, selectedModifiers: [], comboSelections: [], notes: '', status: 'pending' };
         await ctx.answerCbQuery();
@@ -160,7 +122,7 @@ export const initTelegramBot = (token) => {
         const gIdx = parseInt(ctx.match[1]), mIdx = parseInt(ctx.match[2]);
         const session = getSession(ctx.chat.id);
         if (!session.draftItem) return ctx.answerCbQuery();
-        const product = Product.getById(session.draftItem.productId);
+        const product = await Product.getById(session.draftItem.productId);
         const modifier = product.modifierGroups[gIdx].modifiers[mIdx];
         const existingIdx = session.draftItem.selectedModifiers.findIndex(m => m.id === modifier.id);
         if (existingIdx > -1) {
@@ -188,10 +150,9 @@ export const initTelegramBot = (token) => {
         const name = session.draftItem.productName;
         session.draftItem = null;
         await ctx.answerCbQuery('✅ Añadido');
-        await ctx.editMessageText(`✅ *${name}* añadido al carrito.`, { parse_mode: 'Markdown' });
+        await ctx.reply(`✅ *${name}* añadido.`, { parse_mode: 'Markdown' });
     });
 
-    // --- VER CARRITO ---
     bot.hears('🛒 Mi Carrito', (ctx) => {
         const session = getSession(ctx.chat.id);
         if (!session.items.length) return ctx.reply('Carrito vacío. 🛒');
@@ -210,42 +171,25 @@ export const initTelegramBot = (token) => {
         ctx.reply('Carrito vaciado. 🗑️');
     });
 
-    // --- FINALIZAR PEDIDO ---
     bot.hears('✅ Finalizar Pedido', async (ctx) => {
         const session = getSession(ctx.chat.id);
         if (!session.items.length) return ctx.reply('No tienes productos. 🧐');
-        
         if (!session.customer) {
             session.state = 'register_name';
-            return ctx.reply('Necesitamos registrarte antes de finalizar. Por favor dinos tu nombre completo:');
+            return ctx.reply('Por favor dinos tu nombre completo para registrarte:');
         }
-
         try {
             const total = session.items.reduce((sum, i) => sum + i.totalPrice, 0);
-            const orderData = {
-                type: 'takeout', 
-                customerId: session.customer.id,
-                customerName: session.customer.name,
-                customerPhone: session.customer.phone,
-                customerAddress: session.customer.address,
-                items: session.items,
-                subtotal: total,
-                total: total,
-                status: 'pending',
-                paymentStatus: 'pending',
-                origin: 'telegram',
-                notes: `Pedido por @${ctx.from.username || 'user'}`
-            };
-
-            const newOrder = Order.create(orderData);
+            const orderData = { type: 'takeout', customerId: session.customer.id, customerName: session.customer.name, customerPhone: session.customer.phone, customerAddress: session.customer.address, items: session.items, subtotal: total, total: total, status: 'pending', paymentStatus: 'pending', origin: 'telegram', notes: `Pedido por @${ctx.from.username || 'user'}` };
+            const newOrder = await Order.create(orderData);
             session.items = [];
             ctx.reply(`¡Gracias *${session.customer.name}*! 🎉\nOrden: *${newOrder.orderNumber}*`, { parse_mode: 'Markdown' });
         } catch (error) {
-            ctx.reply('Error al procesar pedido. Intenta más tarde.');
+            ctx.reply('Error al procesar pedido.');
         }
     });
 
     bot.launch();
-    console.log('🤖 Telegram Bot activo con sistema de registro.');
+    console.log('🤖 Telegram Bot sincronizado con PostgreSQL.');
     return bot;
 };
