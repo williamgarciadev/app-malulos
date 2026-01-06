@@ -1,4 +1,5 @@
 import { pool } from '../config/database.js';
+import { Customer } from './Customer.js';
 
 // Modelo de Categorías
 export class Category {
@@ -187,6 +188,11 @@ export class Config {
             SET businessName = $1, taxRate = $2, currency = $3, currencySymbol = $4, printReceipt = $5, soundEnabled = $6
             WHERE id = 1
         `, [data.businessName, data.taxRate, data.currency, data.currencySymbol, data.printReceipt ? 1 : 0, data.soundEnabled ? 1 : 0]);
-        return this.get();
-    }
-}
+                return this.get();
+            }
+        }
+        
+        export {
+            Customer
+        };
+        
