@@ -4,7 +4,9 @@ import cors from 'cors';
 import { Product } from './models/Product.js';
 import { Order } from './models/Order.js';
 import { Category, RestaurantTable, User, CashSession, Config } from './models/index.js';
+import { Customer } from './models/Customer.js';
 import { initTelegramBot } from './services/telegramBot.js';
+import { Customer as CustomerModel } from './models/Customer.js'; // Importar modelo separado
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -291,6 +293,53 @@ app.post('/api/cash-sessions/:id/close', (req, res) => {
     try {
         const session = CashSession.close(req.params.id, req.body);
         res.json(session);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ===== CLIENTES =====
+app.get('/api/customers', (req, res) => {
+    try {
+        const customers = Customer.getAll();
+        res.json(customers);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/customers/:id', (req, res) => {
+    try {
+        const customer = Customer.getById(req.params.id);
+        if (!customer) return res.status(404).json({ error: 'Cliente no encontrado' });
+        res.json(customer);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/customers', (req, res) => {
+    try {
+        const customer = Customer.create(req.body);
+        res.status(201).json(customer);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/customers/:id', (req, res) => {
+    try {
+        const customer = Customer.update(req.params.id, req.body);
+        res.json(customer);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/customers/:id', (req, res) => {
+    try {
+        Customer.delete(req.params.id);
+        res.status(204).send();
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

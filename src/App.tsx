@@ -10,6 +10,7 @@ import { Login } from './pages/Login'
 import { CashRegister } from './pages/CashRegister'
 import { Users } from './pages/Users'
 import { ManageTables } from './pages/ManageTables'
+import { Customers } from './pages/Customers'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { CashGuard } from './components/cash/CashGuard'
 
@@ -34,6 +35,7 @@ function App() {
                 </Route>
 
                 <Route path="kitchen" element={<Kitchen />} />
+                <Route path="customers" element={<Customers />} />
 
                 <Route path="cash" element={
                     <ProtectedRoute permission="canManageCash">
