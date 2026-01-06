@@ -159,7 +159,13 @@ app.post('/api/users/login', async (req, res) => {
     try {
         const { pin } = req.body;
         const user = await User.getByPin(pin);
-        if (!user) return res.status(401).json({ error: 'PIN incorrecto' });
+        
+        if (!user) {
+            console.log(`❌ Intento de login fallido para PIN: ${pin}`);
+            return res.status(401).json({ error: 'PIN incorrecto' });
+        }
+        
+        console.log(`✅ Login exitoso: ${user.name} (${user.role})`);
         res.json(user);
     } catch (error) {
         res.status(500).json({ error: error.message });
