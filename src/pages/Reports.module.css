@@ -459,15 +459,77 @@
 
 .orderTypeText {
 
+
+
     font-size: var(--font-size-xs);
 
+
+
     font-weight: 500;
+
+
 
 }
 
 
 
+
+
+
+
+.originTelegram {
+
+
+
+    color: #0088cc;
+
+
+
+    display: flex;
+
+
+
+    justify-content: center;
+
+
+
+}
+
+
+
+
+
+
+
+.originPos {
+
+
+
+    color: var(--color-primary);
+
+
+
+    display: flex;
+
+
+
+    justify-content: center;
+
+
+
+}
+
+
+
+
+
+
+
 .transfer {
+
+
+
+
 
     background: rgba(17, 138, 178, 0.1);
 

@@ -10,7 +10,8 @@ import {
     Home,
     Loader2,
     AlertTriangle,
-    Printer
+    Printer,
+    Send
 } from 'lucide-react'
 import type { Order } from '@/types'
 import styles from './Kitchen.module.css'
@@ -159,6 +160,11 @@ export function Kitchen() {
                                     <div className={styles.orderMeta}>
                                         <span className={styles.orderNumber}>Pedido {order.orderNumber}</span>
                                         <span className={styles.orderTime}>{getTimeElapsed(order.createdAt)}</span>
+                                        {order.origin === 'telegram' && (
+                                            <span className={styles.telegramBadge} title="Pedido desde Telegram">
+                                                <Send size={12} /> Telegram
+                                            </span>
+                                        )}
                                     </div>
                                     <button 
                                         className={styles.printTicketBtn}
@@ -248,6 +254,11 @@ export function Kitchen() {
                                         <span className={`${styles.orderTime} ${styles.timeWarning}`}>
                                             {getTimeElapsed(order.createdAt)}
                                         </span>
+                                        {order.origin === 'telegram' && (
+                                            <span className={styles.telegramBadge} title="Pedido desde Telegram">
+                                                <Send size={12} /> Telegram
+                                            </span>
+                                        )}
                                     </div>
                                     <button 
                                         className={styles.printTicketBtn}

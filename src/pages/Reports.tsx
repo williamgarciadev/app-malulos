@@ -18,7 +18,8 @@ import {
     CreditCard,
     LayoutGrid,
     X,
-    FileSpreadsheet
+    FileSpreadsheet,
+    Send
 } from 'lucide-react'
 import type { Order, Product, Category } from '@/types'
 import styles from './Reports.module.css'
@@ -621,39 +622,65 @@ export function Reports() {
 
                                             <table className={styles.table}>
 
-                                                <thead>
+                                                                                    <thead>
 
-                                                    <tr>
+                                                                                        <tr>
 
-                                                        <th>Pedido</th>
+                                                                                            <th>Pedido</th>
 
-                                                        <th>Fecha y Hora</th>
+                                                                                            <th>Origen</th>
 
-                                                        <th>Mesa</th>
+                                                                                            <th>Fecha y Hora</th>
 
-                                                        <th>Tipo</th>
+                                                                                            <th>Mesa</th>
 
-                                                        <th>Método</th>
+                                                                                            <th>Tipo</th>
 
-                                                        <th>Total</th>
+                                                                                            <th>Método</th>
 
-                                                    </tr>
+                                                                                            <th>Total</th>
 
-                                                </thead>
+                                                                                        </tr>
 
-                                                <tbody>
+                                                                                    </thead>
 
-                                                    {[...completedOrders].reverse().map((order) => (
+                                                                                    <tbody>
 
-                                                        <tr key={order.id}>
+                                                                                        {[...completedOrders].reverse().map((order) => (
 
-                                                            <td>
+                                                                                            <tr key={order.id}>
 
-                                                                <div className={styles.orderId}>#{order.orderNumber}</div>
+                                                                                                <td>
 
-                                                            </td>
+                                                                                                    <div className={styles.orderId}>#{order.orderNumber}</div>
 
-                                                            <td>
+                                                                                                </td>
+
+                                                                                                <td>
+
+                                                                                                    {order.origin === 'telegram' ? (
+
+                                                                                                        <span className={styles.originTelegram} title="Telegram">
+
+                                                                                                            <Send size={14} />
+
+                                                                                                        </span>
+
+                                                                                                    ) : (
+
+                                                                                                        <span className={styles.originPos} title="POS Local">
+
+                                                                                                            <LayoutGrid size={14} />
+
+                                                                                                        </span>
+
+                                                                                                    )}
+
+                                                                                                </td>
+
+                                                                                                <td>
+
+                                                
 
                                                                 <div className={styles.dateTime}>
 

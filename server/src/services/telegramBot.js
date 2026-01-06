@@ -132,6 +132,7 @@ export const initTelegramBot = (token) => {
                 total: total,
                 status: 'pending',
                 paymentStatus: 'pending',
+                origin: 'telegram',
                 notes: `Pedido desde Telegram por @${ctx.from.username || 'user'}`
             };
 

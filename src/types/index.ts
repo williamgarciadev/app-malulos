@@ -139,6 +139,7 @@ export interface Order {
     paymentMethod?: PaymentMethod
     paidAmount: number
     notes?: string
+    origin?: 'pos' | 'telegram'
     createdAt: Date
     confirmedAt?: Date
     readyAt?: Date

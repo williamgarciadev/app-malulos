@@ -71,8 +71,8 @@ export class Order {
             INSERT INTO orders (
                 orderNumber, type, tableId, tableName, customerId, customerName,
                 customerPhone, customerAddress, items, subtotal, discount, tax, total,
-                status, paymentStatus, paymentMethod, paidAmount, notes, createdAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                status, paymentStatus, paymentMethod, paidAmount, notes, origin, createdAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         const result = stmt.run(
@@ -94,6 +94,7 @@ export class Order {
             data.paymentMethod || null,
             data.paidAmount || 0,
             data.notes || null,
+            data.origin || 'pos',
             new Date().toISOString()
         );
 

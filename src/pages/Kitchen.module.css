@@ -186,6 +186,19 @@
     background: rgba(234, 179, 8, 0.18);
 }
 
+.telegramBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #0088cc;
+    color: white;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
 .ticketInfo {
     display: flex;
     align-items: center;

@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS orders (
     paymentMethod TEXT CHECK(paymentMethod IN ('cash', 'card', 'transfer', 'mixed')),
     paidAmount REAL NOT NULL DEFAULT 0,
     notes TEXT,
+    origin TEXT DEFAULT 'pos',
     createdAt TEXT NOT NULL,
     confirmedAt TEXT,
     readyAt TEXT,
