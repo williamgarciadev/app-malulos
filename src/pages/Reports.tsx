@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { ordersApi, productsApi, categoriesApi } from '@/services/api'
+import * as XLSX from 'xlsx'
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     LineChart, Line, Cell, PieChart, Pie, Legend
@@ -16,7 +17,8 @@ import {
     RefreshCw,
     CreditCard,
     LayoutGrid,
-    X
+    X,
+    FileSpreadsheet
 } from 'lucide-react'
 import type { Order, Product, Category } from '@/types'
 import styles from './Reports.module.css'
@@ -31,6 +33,67 @@ export function Reports() {
     const [isLoading, setIsLoading] = useState(true)
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+
+    const handleExportExcel = () => {
+        if (completedOrders.length === 0) return
+
+        // 1. Datos de Pedidos
+        const ordersData = completedOrders.map(order => ({
+            'Pedido': `#${order.orderNumber}`,
+            'Fecha': new Date(order.completedAt!).toLocaleDateString(),
+            'Hora': new Date(order.completedAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            'Tipo': order.type === 'dine-in' ? 'Salón' : order.type === 'takeout' ? 'Para llevar' : 'Domicilio',
+            'Mesa': order.tableName || order.tableId || '-',
+            'Método Pago': order.paymentMethod === 'cash' ? 'Efectivo' : order.paymentMethod === 'card' ? 'Tarjeta' : order.paymentMethod === 'transfer' ? 'Transferencia' : 'Mixto',
+            'Subtotal': order.subtotal,
+            'Descuento': order.discount,
+            'Impuestos': order.tax,
+            'Total': order.total
+        }))
+
+        // 2. Datos de Productos (Resumen)
+        const productsSummary: Record<string, any> = {}
+        completedOrders.forEach(order => {
+            order.items.forEach(item => {
+                if (!productsSummary[item.productName]) {
+                    productsSummary[item.productName] = {
+                        'Producto': item.productName,
+                        'Cantidad': 0,
+                        'Ventas Totales': 0
+                    }
+                }
+                productsSummary[item.productName]['Cantidad'] += item.quantity
+                productsSummary[item.productName]['Ventas Totales'] += item.totalPrice
+            })
+        })
+
+        // 3. Crear Libro de Excel
+        const wb = XLSX.utils.book_new()
+        
+        const wsOrders = XLSX.utils.json_to_sheet(ordersData)
+        const wsProducts = XLSX.utils.json_to_sheet(Object.values(productsSummary))
+        
+        // Formato para el resumen general
+        const summaryData = [
+            ['Reporte de Ventas Malulos POS'],
+            ['Período:', periodLabels[period]],
+            ['Fecha Generación:', new Date().toLocaleString()],
+            [''],
+            ['Métrica', 'Valor'],
+            ['Ventas Totales', totalSales],
+            ['Pedidos Totales', totalOrders],
+            ['Ticket Promedio', avgOrderValue]
+        ]
+        const wsSummary = XLSX.utils.aoa_to_sheet(summaryData)
+
+        XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumen')
+        XLSX.utils.book_append_sheet(wb, wsOrders, 'Detalle Pedidos')
+        XLSX.utils.book_append_sheet(wb, wsProducts, 'Ventas por Producto')
+
+        // 4. Descargar
+        const fileName = `Reporte_Malulos_${period}_${new Date().toISOString().split('T')[0]}.xlsx`
+        XLSX.writeFile(wb, fileName)
+    }
 
     const loadData = useCallback(async (isRefresh = false) => {
         if (isRefresh) setIsRefreshing(true);
@@ -246,6 +309,15 @@ export function Reports() {
                     <p>Resumen de rendimiento del negocio</p>
                 </div>
                 <div className={styles.headerActions}>
+                    <button 
+                        className={styles.exportBtn} 
+                        onClick={handleExportExcel}
+                        title="Exportar a Excel"
+                        disabled={completedOrders.length === 0}
+                    >
+                        <FileSpreadsheet size={18} />
+                        <span>Excel</span>
+                    </button>
                     <button 
                         className={styles.refreshBtn} 
                         onClick={() => loadData(true)}

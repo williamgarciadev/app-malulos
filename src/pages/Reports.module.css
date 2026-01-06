@@ -26,6 +26,33 @@
     gap: var(--space-md);
 }
 
+.exportBtn {
+    height: 40px;
+    padding: 0 var(--space-md);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background: #1D6F42; /* Excel Green */
+    color: white;
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    transition: all var(--transition-base);
+}
+
+.exportBtn:hover:not(:disabled) {
+    background: #155a34;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.exportBtn:disabled {
+    background: var(--color-bg-hover);
+    color: var(--color-text-muted);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
 .refreshBtn {
     width: 40px;
     height: 40px;
