@@ -1,7 +1,7 @@
 .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
@@ -20,6 +20,8 @@
     padding: var(--space-lg);
     overflow-y: auto;
     position: relative;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--color-border);
     animation: slideUp var(--transition-base) forwards;
 }
 
@@ -48,7 +50,7 @@
     text-align: center;
     margin-bottom: var(--space-lg);
     padding-bottom: var(--space-md);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--color-border);
 }
 
 .headerIcon {
@@ -60,6 +62,7 @@
     font-size: var(--font-size-xl);
     font-weight: 700;
     margin-bottom: 4px;
+    color: var(--color-text);
 }
 
 .orderNumber {
@@ -97,6 +100,7 @@
     background: var(--color-bg-input);
     border-radius: var(--radius-sm);
     font-size: var(--font-size-sm);
+    color: var(--color-text);
 }
 
 .itemQty {
@@ -122,6 +126,7 @@
     background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(78, 205, 196, 0.1) 100%);
     border-radius: var(--radius-md);
     font-weight: 600;
+    color: var(--color-text);
 }
 
 .totalAmount {
@@ -158,6 +163,7 @@
 .methodBtn:hover {
     border-color: var(--color-primary);
     color: var(--color-text);
+    background: var(--color-bg-hover);
 }
 
 .methodActive {
@@ -175,7 +181,7 @@
     width: 100%;
     padding: var(--space-md);
     background: var(--color-bg-input);
-    border: 2px solid transparent;
+    border: 2px solid var(--color-border);
     border-radius: var(--radius-md);
     color: var(--color-text);
     font-size: var(--font-size-xl);
@@ -207,15 +213,17 @@
     padding: var(--space-sm);
     background: var(--color-bg-hover);
     border-radius: var(--radius-sm);
-    color: var(--color-text-muted);
+    color: var(--color-text);
     font-size: var(--font-size-sm);
     font-weight: 500;
     transition: all var(--transition-fast);
+    border: 1px solid transparent;
 }
 
 .quickBtn:hover {
     background: var(--color-primary);
     color: white;
+    border-color: var(--color-primary);
 }
 
 .changeRow {
@@ -226,6 +234,11 @@
     background: rgba(0, 200, 81, 0.1);
     border-radius: var(--radius-md);
     border: 1px solid var(--color-success);
+}
+
+.changeRow span {
+    color: var(--color-text);
+    font-weight: 600;
 }
 
 .changeAmount {
@@ -259,4 +272,103 @@
 .confirmBtn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* ---------- Success View ---------- */
+.successModal {
+    max-width: 400px;
+    text-align: center;
+    padding: var(--space-2xl) var(--space-xl);
+}
+
+.successHeader {
+    margin-bottom: var(--space-xl);
+}
+
+.successIcon {
+    width: 80px;
+    height: 80px;
+    background: rgba(0, 200, 81, 0.1);
+    color: var(--color-success);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--space-lg);
+    box-shadow: 0 0 20px rgba(0, 200, 81, 0.2);
+}
+
+.subtitle {
+    color: var(--color-text-muted);
+    margin-top: var(--space-xs);
+}
+
+.successStats {
+    background: var(--color-bg-input);
+    padding: var(--space-lg);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-xl);
+    border: 1px solid var(--color-border);
+}
+
+.statLine {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-xs) 0;
+}
+
+.statLine span:first-child {
+    color: var(--color-text-muted);
+}
+
+.statBold {
+    font-weight: 800;
+    color: var(--color-text);
+    font-size: var(--font-size-xl);
+}
+
+.statChange {
+    font-weight: 700;
+    color: var(--color-primary);
+    font-size: var(--font-size-lg);
+}
+
+.successActions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.printBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: var(--color-bg-hover);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    border-radius: var(--radius-lg);
+    font-weight: 700;
+    transition: all var(--transition-fast);
+}
+
+.printBtn:hover {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+.finishBtn {
+    padding: var(--space-md);
+    background: var(--color-success);
+    color: white;
+    border-radius: var(--radius-lg);
+    font-weight: 800;
+    transition: all var(--transition-fast);
+}
+
+.finishBtn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
 }

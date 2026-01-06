@@ -84,11 +84,12 @@
 /* ---------- Categories ---------- */
 .categories {
     display: flex;
-    gap: var(--space-sm);
+    gap: var(--space-md);
     padding: var(--space-sm) var(--space-md);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    padding-bottom: var(--space-md);
 }
 
 .categories::-webkit-scrollbar {
@@ -99,33 +100,44 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: var(--space-sm) var(--space-md);
+    gap: 8px;
+    padding: 16px;
     background: var(--color-bg-card);
-    border-radius: var(--radius-md);
-    border: 2px solid transparent;
-    transition: all var(--transition-fast);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all var(--transition-base);
     flex-shrink: 0;
+    min-width: 100px;
+    box-shadow: var(--shadow-sm);
 }
 
 .categoryBtn:hover {
+    transform: translateY(-2px);
     background: var(--color-bg-hover);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .categoryActive {
     border-color: var(--color-primary);
-    background: rgba(255, 107, 53, 0.1);
+    background: linear-gradient(145deg, rgba(255, 107, 53, 0.15), rgba(255, 107, 53, 0.05));
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.15);
 }
 
 .categoryIcon {
-    font-size: 1.5rem;
+    font-size: 2rem;
+    transition: transform var(--transition-base);
+}
+
+.categoryActive .categoryIcon {
+    transform: scale(1.1);
 }
 
 .categoryName {
-    font-size: var(--font-size-xs);
-    font-weight: 500;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
     color: var(--color-text-muted);
     white-space: nowrap;
+    transition: color var(--transition-base);
 }
 
 .categoryActive .categoryName {
@@ -142,37 +154,63 @@
 }
 
 .productCard {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-xs);
-    padding: var(--space-md);
+    gap: var(--space-sm);
+    padding: var(--space-lg);
     background: var(--color-bg-card);
-    border-radius: var(--radius-lg);
+    background: linear-gradient(145deg, var(--color-bg-card), rgba(255, 255, 255, 0.02));
+    border-radius: var(--radius-xl);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    transition: all var(--transition-fast);
+    transition: all var(--transition-base);
     text-align: center;
+    overflow: hidden;
+}
+
+.productCard::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--color-primary);
+    opacity: 0;
+    transition: opacity var(--transition-base);
 }
 
 .productCard:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
-    border-color: var(--color-primary);
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.productCard:hover::before {
+    opacity: 1;
 }
 
 .productCard:active {
-    transform: scale(0.98);
+    transform: scale(0.97);
 }
 
 .productEmoji {
-    font-size: 2.5rem;
+    font-size: 3.5rem;
     margin-bottom: var(--space-xs);
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+    transition: transform var(--transition-base);
+}
+
+.productCard:hover .productEmoji {
+    transform: scale(1.1) rotate(5deg);
 }
 
 .productName {
-    font-size: var(--font-size-sm);
-    font-weight: 600;
+    font-size: var(--font-size-md);
+    font-weight: 700;
     color: var(--color-text);
+    line-height: 1.3;
 }
 
 .productDesc {
@@ -182,13 +220,18 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    margin-bottom: var(--space-xs);
+    opacity: 0.8;
 }
 
 .productPrice {
-    font-size: var(--font-size-md);
-    font-weight: 700;
+    font-size: var(--font-size-lg);
+    font-weight: 800;
     color: var(--color-primary);
     margin-top: auto;
+    background: rgba(255, 107, 53, 0.1);
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
 }
 
 /* ---------- Modal ---------- */
@@ -405,6 +448,25 @@
 .addPrice {
     margin-left: auto;
     font-weight: 700;
+}
+
+.notesInput {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--color-bg-input);
+    color: var(--color-text);
+    resize: none;
+    margin-bottom: var(--space-sm);
+    font-family: inherit;
+    font-size: var(--font-size-sm);
+    transition: border-color var(--transition-fast);
+}
+
+.notesInput:focus {
+    outline: none;
+    border-color: var(--color-primary);
 }
 
 /* ---------- Cart Drawer ---------- */

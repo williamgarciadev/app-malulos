@@ -1,0 +1,20 @@
+{
+  "name": "malulos-pos-server",
+  "version": "1.0.0",
+  "description": "Backend API para Malulos POS",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "init-db": "node src/config/initDb.js"
+  },
+  "keywords": ["pos", "restaurant", "api"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.8.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}

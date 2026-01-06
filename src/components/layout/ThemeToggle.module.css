@@ -1,0 +1,66 @@
+.toggleBtn {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-bg-input);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.toggleBtn:hover {
+    background: var(--color-bg-hover);
+    transform: scale(1.05);
+}
+
+.iconWrapper {
+    position: relative;
+    width: 20px;
+    height: 20px;
+}
+
+.sunIcon,
+.moonIcon {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Estado: Mostrar Luna (Modo Dark activo, click para Light) */
+/* Espera, la lógica visual suele ser: Mostrar el icono del modo AL QUE VOY A CAMBIAR o el modo ACTUAL. 
+   Generalmente se muestra el modo actual (Sol si es día, Luna si es noche) o al revés.
+   Vamos a mostrar el icono del modo ACTUAL.
+   Si theme === 'dark', mostramos Luna.
+   Si theme === 'light', mostramos Sol.
+*/
+
+.sunIcon {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.5);
+    color: #FDB813;
+}
+
+.moonIcon {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.5);
+    color: #f1c40f; /* Un amarillo luna suave */
+}
+
+/* Si el tema es light (queremos mostrar el sol) */
+.showSun .sunIcon {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+}
+
+/* Si el tema es dark (queremos mostrar la luna) */
+.showMoon .moonIcon {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+}

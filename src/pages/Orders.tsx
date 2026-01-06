@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '@/db/database'
+import { fetchApi } from '@/services/api'
 import { useCartStore } from '@/stores/cartStore'
+import { useToast } from '@/context/ToastContext'
 import {
     Plus,
     Minus,
@@ -10,35 +10,55 @@ import {
     Trash2,
     Send,
     ArrowLeft,
-    X
+    X,
+    Loader2
 } from 'lucide-react'
-import type { Product, ProductSize, Modifier, Category } from '@/types'
+import type { Product, ProductSize, Modifier, Category, RestaurantTable } from '@/types'
 import styles from './Orders.module.css'
 
 export function Orders() {
     const { tableId } = useParams()
     const [searchParams] = useSearchParams()
     const navigate = useNavigate()
+    const { addToast } = useToast()
 
+    const [categories, setCategories] = useState<Category[]>([])
+    const [allProducts, setAllProducts] = useState<Product[]>([])
     const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
     const [selectedSize, setSelectedSize] = useState<ProductSize | undefined>()
     const [selectedModifiers, setSelectedModifiers] = useState<Modifier[]>([])
     const [quantity, setQuantity] = useState(1)
+    const [notes, setNotes] = useState('')
     const [showCart, setShowCart] = useState(false)
+    const [isLoading, setIsLoading] = useState(true)
 
     const cart = useCartStore()
 
-    const categories = useLiveQuery<Category[]>(() =>
-        db.categories.toArray().then(cats => cats.filter(c => c.isActive).sort((a, b) => a.order - b.order))
-    )
+    // Cargar datos iniciales
+    useEffect(() => {
+        const loadInitialData = async () => {
+            try {
+                const [catsData, prodsData] = await Promise.all([
+                    fetchApi<Category[]>('/categories'),
+                    fetchApi<Product[]>('/products')
+                ])
+                
+                const activeCats = catsData.filter(c => c.isActive).sort((a, b) => a.order - b.order)
+                setCategories(activeCats)
+                setAllProducts(prodsData.filter(p => p.isActive))
 
-    const products = useLiveQuery<Product[]>(
-        () => selectedCategory
-            ? db.products.where('categoryId').equals(selectedCategory).filter(p => p.isActive).toArray()
-            : db.products.filter(p => p.isActive).toArray(),
-        [selectedCategory]
-    )
+                if (activeCats.length > 0) {
+                    setSelectedCategory(activeCats[0].id!)
+                }
+            } catch (error) {
+                console.error('Error loading menu data:', error)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+        loadInitialData()
+    }, [])
 
     // Configurar tipo de pedido y mesa
     useEffect(() => {
@@ -53,18 +73,17 @@ export function Orders() {
         }
     }, [tableId, searchParams])
 
-    // Seleccionar primera categoría
-    useEffect(() => {
-        if (categories && categories.length > 0 && !selectedCategory) {
-            setSelectedCategory(categories[0].id!)
-        }
-    }, [categories])
+    const getFilteredProducts = useCallback(() => {
+        if (!selectedCategory) return []
+        return allProducts.filter(p => p.categoryId === selectedCategory)
+    }, [allProducts, selectedCategory])
 
     const handleProductClick = (product: Product) => {
         setSelectedProduct(product)
         setSelectedSize(product.sizes[0])
         setSelectedModifiers([])
         setQuantity(1)
+        setNotes('')
     }
 
     const handleToggleModifier = (modifier: Modifier) => {
@@ -86,7 +105,7 @@ export function Orders() {
             selectedSize,
             selectedModifiers,
             [],
-            ''
+            notes
         )
 
         setSelectedProduct(null)
@@ -96,48 +115,73 @@ export function Orders() {
     const handleSendOrder = async () => {
         if (cart.items.length === 0) return
 
-        const orderNumber = `#${String(Date.now()).slice(-4)}`
+        try {
+            let tableName = undefined
+            if (tableId) {
+                // Obtener nombre de la mesa si es dine-in
+                try {
+                    const table = await fetchApi<RestaurantTable>(`/tables/${tableId}`)
+                    tableName = table.name
+                } catch (e) {
+                    console.error('Error fetching table info', e)
+                }
+            }
 
-        const table = tableId ? await db.restaurantTables.get(parseInt(tableId)) : null
+            const orderData = {
+                type: cart.orderType,
+                tableId: tableId ? parseInt(tableId) : undefined,
+                tableName,
+                customerName: cart.customerName || undefined,
+                customerPhone: cart.customerPhone || undefined,
+                customerAddress: cart.customerAddress || undefined,
+                items: cart.items.map(item => ({
+                    id: item.id,
+                    productId: item.product.id!,
+                    productName: item.product.name,
+                    quantity: item.quantity,
+                    selectedSize: item.selectedSize,
+                    selectedModifiers: item.selectedModifiers,
+                    comboSelections: item.comboSelections,
+                    notes: item.notes,
+                    unitPrice: item.unitPrice,
+                    totalPrice: item.totalPrice,
+                    status: 'pending'
+                })),
+                subtotal: cart.getSubtotal(),
+                discount: 0,
+                tax: 0,
+                total: cart.getTotal(),
+                status: 'pending',
+                paymentStatus: 'pending',
+                paidAmount: 0,
+                createdAt: new Date()
+            }
 
-        await db.orders.add({
-            orderNumber,
-            type: cart.orderType,
-            tableId: tableId ? parseInt(tableId) : undefined,
-            tableName: table?.name,
-            customerName: cart.customerName || undefined,
-            customerPhone: cart.customerPhone || undefined,
-            customerAddress: cart.customerAddress || undefined,
-            items: cart.items.map(item => ({
-                id: item.id,
-                productId: item.product.id!,
-                productName: item.product.name,
-                quantity: item.quantity,
-                selectedSize: item.selectedSize,
-                selectedModifiers: item.selectedModifiers,
-                comboSelections: item.comboSelections,
-                notes: item.notes,
-                unitPrice: item.unitPrice,
-                totalPrice: item.totalPrice,
-                status: 'pending'
-            })),
-            subtotal: cart.getSubtotal(),
-            discount: 0,
-            tax: 0,
-            total: cart.getTotal(),
-            status: 'pending',
-            paymentStatus: 'pending',
-            paidAmount: 0,
-            createdAt: new Date()
-        })
+            // 1. Crear Orden y obtener respuesta
+            const createdOrder = await fetchApi<any>('/orders', { // Usar any o tipo Order si incluye orderNumber
+                method: 'POST',
+                body: JSON.stringify(orderData)
+            })
 
-        // Actualizar estado de la mesa
-        if (tableId) {
-            await db.restaurantTables.update(parseInt(tableId), { status: 'occupied' })
+            // 2. Actualizar estado de la mesa si aplica
+            if (tableId) {
+                await fetchApi(`/tables/${tableId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ status: 'occupied' })
+                })
+            }
+
+            cart.clearCart()
+            
+            // Usar el número real devuelto por el servidor
+            const realOrderNumber = createdOrder?.orderNumber || 'Nueva';
+            addToast('success', 'Pedido enviado', `Orden ${realOrderNumber} enviada a cocina`)
+            
+            navigate('/kitchen')
+        } catch (error) {
+            console.error('Error sending order:', error)
+            addToast('error', 'Error al enviar', 'No se pudo enviar el pedido. Intente nuevamente.')
         }
-
-        cart.clearCart()
-        navigate('/kitchen')
     }
 
     const formatPrice = (price: number) => {
@@ -154,6 +198,15 @@ export function Orders() {
         if (selectedSize) price += selectedSize.priceModifier
         price += selectedModifiers.reduce((sum, m) => sum + m.priceModifier, 0)
         return price * quantity
+    }
+
+    if (isLoading) {
+        return (
+            <div className={styles.loadingContainer}>
+                <Loader2 className={styles.spinner} />
+                <p>Cargando menú...</p>
+            </div>
+        )
     }
 
     return (
@@ -184,7 +237,7 @@ export function Orders() {
 
             {/* Categories */}
             <nav className={styles.categories}>
-                {categories?.map(cat => (
+                {categories.map(cat => (
                     <button
                         key={cat.id}
                         className={`${styles.categoryBtn} ${selectedCategory === cat.id ? styles.categoryActive : ''}`}
@@ -198,14 +251,14 @@ export function Orders() {
 
             {/* Products Grid */}
             <div className={styles.productsGrid}>
-                {products?.map(product => (
+                {getFilteredProducts().map(product => (
                     <button
                         key={product.id}
                         className={styles.productCard}
                         onClick={() => handleProductClick(product)}
                     >
                         <div className={styles.productEmoji}>
-                            {product.isCombo ? '🍱' : categories?.find(c => c.id === product.categoryId)?.icon}
+                            {product.isCombo ? '🍱' : categories.find(c => c.id === product.categoryId)?.icon}
                         </div>
                         <h3 className={styles.productName}>{product.name}</h3>
                         <p className={styles.productDesc}>{product.description}</p>
@@ -224,7 +277,7 @@ export function Orders() {
 
                         <div className={styles.modalHeader}>
                             <span className={styles.modalEmoji}>
-                                {selectedProduct.isCombo ? '🍱' : categories?.find(c => c.id === selectedProduct.categoryId)?.icon}
+                                {selectedProduct.isCombo ? '🍱' : categories.find(c => c.id === selectedProduct.categoryId)?.icon}
                             </span>
                             <h2 className={styles.modalTitle}>{selectedProduct.name}</h2>
                             <p className={styles.modalDesc}>{selectedProduct.description}</p>
@@ -291,6 +344,18 @@ export function Orders() {
                                     <Plus size={20} />
                                 </button>
                             </div>
+                        </div>
+
+                        {/* Notes */}
+                        <div className={styles.modalSection}>
+                            <h3 className={styles.sectionTitle}>Notas / Instrucciones</h3>
+                            <textarea
+                                className={styles.notesInput}
+                                placeholder="Ej: Sin cebolla, Salsa aparte..."
+                                value={notes}
+                                onChange={(e) => setNotes(e.target.value)}
+                                rows={2}
+                            />
                         </div>
 
                         {/* Add Button */}

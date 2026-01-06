@@ -1,64 +1,98 @@
-import { ReactNode } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import {
     Home,
-    ShoppingCart,
-    ChefHat,
     UtensilsCrossed,
-    LayoutGrid,
-    Settings
+    ClipboardList,
+    ChefHat,
+    Settings,
+    LogOut,
+    User as UserIcon,
+    Banknote,
+    BarChart3,
+    Users,
+    LayoutGrid
 } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
+import { ThemeToggle } from './ThemeToggle'
 import styles from './Layout.module.css'
 
 interface LayoutProps {
-    children: ReactNode
+    children: React.ReactNode
 }
 
-const navItems = [
-    { path: '/', icon: Home, label: 'Inicio' },
-    { path: '/tables', icon: LayoutGrid, label: 'Mesas' },
-    { path: '/orders', icon: ShoppingCart, label: 'Pedidos' },
-    { path: '/kitchen', icon: ChefHat, label: 'Cocina' },
-    { path: '/menu', icon: UtensilsCrossed, label: 'Menú' }
-]
-
 export function Layout({ children }: LayoutProps) {
+    const navigate = useNavigate()
     const location = useLocation()
-    const isKitchenView = location.pathname === '/kitchen'
+    const { user, logout, hasPermission } = useAuthStore()
 
-    // Vista de cocina sin navegación
-    if (isKitchenView) {
-        return <main className={styles.kitchenMain}>{children}</main>
+    const isActive = (path: string) => location.pathname === path
+    const isKitchenDisplay = location.pathname === '/kitchen'
+
+    // Construir navItems basado en permisos
+    const navItems = [
+        { path: '/', icon: <Home size={20} />, label: 'Inicio', show: true },
+        { path: '/tables', icon: <UtensilsCrossed size={20} />, label: 'Mesas', show: true },
+        { path: '/orders', icon: <ClipboardList size={20} />, label: 'Pedidos', show: true },
+        { path: '/kitchen', icon: <ChefHat size={20} />, label: 'Cocina', show: true },
+        { path: '/cash', icon: <Banknote size={20} />, label: 'Caja', show: hasPermission('canManageCash') },
+        { path: '/menu', icon: <Settings size={20} />, label: 'Menú', show: hasPermission('canManageMenu') },
+        { path: '/manage-tables', icon: <LayoutGrid size={20} />, label: 'Gestión Mesas', show: hasPermission('canManageMenu') },
+        { path: '/reports', icon: <BarChart3 size={20} />, label: 'Reportes', show: hasPermission('canViewReports') },
+        { path: '/users', icon: <Users size={20} />, label: 'Usuarios', show: hasPermission('canManageUsers') },
+    ].filter(item => item.show)
+
+    const handleLogout = () => {
+        logout()
+        navigate('/login')
     }
 
     return (
-        <div className={styles.layout}>
-            <header className={styles.header}>
+        <div className={`${styles.container} ${isKitchenDisplay ? styles.kitchenDisplay : ''}`}>
+            {/* Sidebar / Topbar para Desktop */}
+            {!isKitchenDisplay && (
+                <header className={styles.header}>
                 <div className={styles.logo}>
                     <span className={styles.logoIcon}>🍔</span>
-                    <span className={styles.logoText}>Malulos</span>
+                    <h1 className={styles.logoText}>Malulos</h1>
                 </div>
-                <button className={styles.settingsBtn} aria-label="Configuración">
-                    <Settings size={20} />
-                </button>
-            </header>
 
-            <main className={styles.main}>{children}</main>
+                <div className={styles.userProfile}>
+                    <div className={styles.userInfo}>
+                        <span className={styles.userName}>{user?.name}</span>
+                        <span className={styles.userRole}>{user?.role}</span>
+                    </div>
+                    <div className={styles.avatar}>
+                        <UserIcon size={18} />
+                    </div>
+                    
+                    <ThemeToggle />
+                    
+                    <button className={styles.logoutBtn} onClick={handleLogout} title="Cerrar Sesión">
+                        <LogOut size={18} />
+                    </button>
+                </div>
+                </header>
+            )}
 
-            <nav className={styles.nav}>
-                {navItems.map(({ path, icon: Icon, label }) => (
-                    <NavLink
-                        key={path}
-                        to={path}
-                        className={({ isActive }) =>
-                            `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
-                        }
-                    >
-                        <Icon size={22} />
-                        <span className={styles.navLabel}>{label}</span>
-                    </NavLink>
-                ))}
-            </nav>
+            <main className={styles.main}>
+                {children}
+            </main>
+
+            {/* Bottom Navigation para Mobile */}
+            {!isKitchenDisplay && (
+                <nav className={styles.nav}>
+                    {navItems.map((item) => (
+                        <Link
+                            key={item.path}
+                            to={item.path}
+                            className={`${styles.navItem} ${isActive(item.path) ? styles.navItemActive : ''}`}
+                        >
+                            {item.icon}
+                            <span className={styles.navLabel}>{item.label}</span>
+                        </Link>
+                    ))}
+                </nav>
+            )}
         </div>
     )
 }

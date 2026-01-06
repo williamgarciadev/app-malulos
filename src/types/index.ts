@@ -170,3 +170,84 @@ export interface AppConfig {
     printReceipt: boolean
     soundEnabled: boolean
 }
+
+// ---------- Usuarios ----------
+export type UserRole = 'admin' | 'cashier' | 'waiter'
+
+export interface User {
+    id?: number
+    name: string
+    pin: string // 4 dígitos
+    role: UserRole
+    isActive: boolean
+    createdAt: Date
+}
+
+export interface UserPermissions {
+    canTakeOrders: boolean
+    canProcessPayments: boolean
+    canManageCash: boolean
+    canViewReports: boolean
+    canManageMenu: boolean
+    canManageUsers: boolean
+}
+
+// Permisos por rol
+export const ROLE_PERMISSIONS: Record<UserRole, UserPermissions> = {
+    admin: {
+        canTakeOrders: true,
+        canProcessPayments: true,
+        canManageCash: true,
+        canViewReports: true,
+        canManageMenu: true,
+        canManageUsers: true
+    },
+    cashier: {
+        canTakeOrders: true,
+        canProcessPayments: true,
+        canManageCash: true,
+        canViewReports: false,
+        canManageMenu: false,
+        canManageUsers: false
+    },
+    waiter: {
+        canTakeOrders: true,
+        canProcessPayments: false,
+        canManageCash: false,
+        canViewReports: false,
+        canManageMenu: false,
+        canManageUsers: false
+    }
+}
+
+// ---------- Sesiones de Caja ----------
+export type CashSessionStatus = 'open' | 'closed'
+
+export interface CashSession {
+    id?: number
+    userId: number
+    userName: string
+    openedAt: Date
+    closedAt?: Date
+    openingAmount: number
+    expectedAmount?: number
+    actualAmount?: number
+    difference?: number
+    cashSales: number
+    cardSales: number
+    totalSales: number
+    ordersCount: number
+    notes?: string
+    status: CashSessionStatus
+}
+
+export interface CashMovement {
+    id?: number
+    sessionId: number
+    type: 'in' | 'out'
+    amount: number
+    reason: string
+    userId: number
+    userName: string
+    createdAt: Date
+}

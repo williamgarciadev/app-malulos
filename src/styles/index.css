@@ -1,64 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ============================================
-   MALULOS POS - Sistema de Diseño
+   MALULOS POS - Sistema de Diseño Premium
    ============================================ */
 
-/* ---------- Variables CSS ---------- */
 :root {
-  /* Colores principales */
-  --color-primary: #FF6B35;
-  --color-primary-dark: #E85A2A;
-  --color-primary-light: #FF8A5C;
+  /* --- Configuración Base (Dark Mode por defecto) --- */
+  /* Paleta: Zinc / Slate Dark */
+  --color-bg-dark: #09090b;       /* Fondo principal (Casi negro) */
+  --color-bg-card: #18181b;       /* Tarjetas (Zinc-900) */
+  --color-bg-input: #27272a;      /* Inputs (Zinc-800) */
+  --color-bg-hover: #3f3f46;      /* Hover (Zinc-700) */
   
-  /* Colores secundarios */
-  --color-secondary: #4ECDC4;
-  --color-secondary-dark: #3DB8B0;
-  
-  /* Colores de fondo */
-  --color-bg-dark: #1a1a2e;
-  --color-bg-card: #16213e;
-  --color-bg-input: #0f3460;
-  --color-bg-hover: #1f4068;
-  
-  /* Colores de texto */
-  --color-text: #ffffff;
-  --color-text-muted: #a0a0a0;
-  --color-text-dark: #1a1a2e;
-  
-  /* Estados */
-  --color-success: #00C851;
-  --color-warning: #ffbb33;
-  --color-danger: #ff4444;
-  --color-info: #33b5e5;
-  
-  /* Estados de pedidos */
-  --color-pending: #ffbb33;
-  --color-preparing: #33b5e5;
-  --color-ready: #00C851;
-  --color-delivered: #4ECDC4;
-  
-  /* Sombras */
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 20px rgba(255, 107, 53, 0.3);
+  /* Textos */
+  --color-text: #fafafa;          /* Blanco roto (Zinc-50) */
+  --color-text-muted: #a1a1aa;    /* Gris claro (Zinc-400) */
+  --color-text-dark: #09090b;     /* Texto para fondos claros */
   
   /* Bordes */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --color-border: #27272a;        /* Bordes sutiles */
+
+  /* Colores de Marca (Vibrantes en Dark) */
+  --color-primary: #f97316;       /* Orange-500 */
+  --color-primary-dark: #ea580c;  /* Orange-600 */
+  --color-primary-light: #fb923c; /* Orange-400 */
+  
+  --color-secondary: #2dd4bf;     /* Teal-400 */
+  
+  /* Estados */
+  --color-success: #22c55e;       /* Green-500 */
+  --color-warning: #eab308;       /* Yellow-500 */
+  --color-danger: #ef4444;        /* Red-500 */
+  --color-info: #3b82f6;          /* Blue-500 */
+
+  /* Sombras (Dark Mode usa glow sutil) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(249, 115, 22, 0.15); /* Glow naranja */
+}
+
+/* --- Tema Claro (Light Mode) --- */
+[data-theme="light"] {
+  /* Paleta: Clean White / Gray */
+  --color-bg-dark: #f8fafc;       /* Fondo (Slate-50) */
+  --color-bg-card: #ffffff;       /* Blanco puro */
+  --color-bg-input: #f1f5f9;      /* Slate-100 */
+  --color-bg-hover: #e2e8f0;      /* Slate-200 */
+  
+  /* Textos */
+  --color-text: #0f172a;          /* Slate-900 (Casi negro) */
+  --color-text-muted: #64748b;    /* Slate-500 */
+  --color-text-dark: #ffffff;     /* Texto blanco para botones */
+  
+  /* Bordes */
+  --color-border: #e2e8f0;        /* Bordes muy suaves */
+
+  /* Colores de Marca (Más profundos en Light) */
+  --color-primary: #ea580c;       /* Orange-600 */
+  --color-primary-dark: #c2410c;  /* Orange-700 */
+  --color-primary-light: #f97316; /* Orange-500 */
+  
+  --color-secondary: #0d9488;     /* Teal-600 */
+
+  /* Sombras (Suaves y difusas) */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-glow: 0 4px 20px rgba(234, 88, 12, 0.15);
+}
+
+/* Resto de variables comunes */
+:root {
+  /* Estados de pedidos */
+  --color-pending: #f59e0b;
+  --color-preparing: #3b82f6;
+  --color-ready: #22c55e;
+  --color-delivered: #14b8a6;
+  
+  /* Bordes */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
   --radius-full: 9999px;
   
   /* Espaciado */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-2xl: 48px;
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
   
   /* Tipografía */
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-md: 1rem;
@@ -68,9 +106,9 @@
   --font-size-3xl: 2rem;
   
   /* Transiciones */
-  --transition-fast: 150ms ease;
-  --transition-base: 250ms ease;
-  --transition-slow: 350ms ease;
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
   
   /* Z-index */
   --z-dropdown: 100;
@@ -96,78 +134,31 @@ body {
   color: var(--color-text);
   line-height: 1.5;
   min-height: 100vh;
-  min-height: 100dvh;
-  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease; /* Transición suave de tema */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* El resto de estilos globales se mantienen... */
 #root {
   min-height: 100vh;
-  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font-family: inherit; font-size: inherit; }
+ul, ol { list-style: none; }
+img { max-width: 100%; height: auto; display: block; }
 
-button {
-  font-family: inherit;
-  cursor: pointer;
-  border: none;
-  background: none;
-}
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-bg-hover); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
 
-input, textarea, select {
-  font-family: inherit;
-  font-size: inherit;
-}
-
-ul, ol {
-  list-style: none;
-}
-
-img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-}
-
-/* ---------- Scrollbar personalizado ---------- */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--color-bg-card);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-bg-hover);
-  border-radius: var(--radius-full);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary);
-}
-
-/* ---------- Utilidades ---------- */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
+/* Clases de utilidad */
 .container {
   width: 100%;
   max-width: 1200px;
@@ -175,66 +166,9 @@ img {
   padding: 0 var(--space-md);
 }
 
-/* ---------- Animaciones ---------- */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+/* Animaciones */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-@keyframes slideUp {
-  from { 
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to { 
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideIn {
-  from { 
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to { 
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% { 
-    opacity: 1; 
-  }
-  50% { 
-    opacity: 0.5; 
-  }
-}
-
-@keyframes bounce {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}
-
-.animate-fadeIn {
-  animation: fadeIn var(--transition-base) forwards;
-}
-
-.animate-slideUp {
-  animation: slideUp var(--transition-base) forwards;
-}
-
-.animate-pulse {
-  animation: pulse 2s infinite;
-}
+.animate-fadeIn { animation: fadeIn var(--transition-base) forwards; }
+.animate-slideUp { animation: slideUp var(--transition-base) forwards; }

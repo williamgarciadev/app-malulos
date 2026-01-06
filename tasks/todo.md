@@ -1,58 +1,62 @@
-# 🍔 Malulos POS - Lista de Tareas
+# Plan de Migración: Dexie a API REST (Cliente-Servidor)
 
-## Fase 1: Configuración Inicial ✅
-- [x] Inicializar proyecto con Vite + React + TypeScript
-- [x] Configurar PWA (manifest, service worker)
-- [x] Configurar estructura de carpetas (arquitectura limpia)
-- [x] Configurar sistema de diseño y estilos base
+El objetivo es centralizar la lógica de negocio y persistencia en el backend (SQLite) para permitir funcionalidad multi-dispositivo real.
 
-## Fase 2: Base de Datos Local (IndexedDB) ✅
-- [x] Configurar Dexie.js para IndexedDB
-- [x] Crear esquema de base de datos (productos, pedidos, categorías, mesas)
-- [x] Crear servicios de acceso a datos (repositories)
+## 📋 Tareas de Migración
 
-## Fase 3: Gestión de Productos y Menú ✅
-- [x] CRUD de categorías (datos iniciales)
-- [x] CRUD de productos con modificadores y tamaños
-- [x] CRUD de combos
-- [x] Interfaz de administración de menú
+### 1. Configuración Base API
+- [ ] **Crear cliente HTTP:** Crear `src/services/api.ts` para manejar `fetch`, timeouts y URL base (`VITE_API_URL`).
+- [ ] **Definir endpoints:** Crear funciones para mapear todos los endpoints del backend (`products`, `categories`, `tables`, `orders`, `users`, `cash-sessions`, `config`).
 
-## Fase 4: Sistema de Pedidos (Core) ✅
-- [x] Crear carrito de compras
-- [x] Selector de productos con modificadores
-- [x] Selector de tamaños
-- [x] Gestión de combos en pedido
-- [x] Asignación de mesa o domicilio
-- [x] Cálculo de totales
+### 2. Migración de Autenticación (AuthStore)
+- [ ] **Login contra API:** Modificar `authStore.ts` para usar `/api/users/login` en lugar de `db.users`.
+- [ ] **Persistencia:** Asegurar que el token/usuario se guarde en `localStorage` (como ya hace, verificar seguridad).
 
-## Fase 5: Pantalla de Cocina (Kitchen Display) ✅
-- [x] Vista de pedidos pendientes en tiempo real
-- [x] Sistema de estados (pendiente, preparando, listo)
-- [ ] Notificaciones sonoras
-- [x] Marcar pedido como completado
+### 3. Migración de Caja (CashStore)
+- [ ] **Estado Remoto:** `cashStore.ts` no debe solo guardar en memoria local. Debe consultar `/api/cash-sessions/active` al iniciar.
+- [ ] **Apertura/Cierre:** Conectar métodos `openSession` y `closeSession` a la API.
 
-## Fase 6: Gestión de Mesas ✅
-- [x] Mapa visual de mesas
-- [x] Estados de mesas (libre, ocupada, por pagar)
-- [ ] Historial de pedidos por mesa
+### 4. Gestión de Datos Maestros (Productos/Categorías/Mesas)
+- [ ] **Hook de Carga:** Crear hooks o servicios para cargar Productos, Categorías y Mesas desde la API al iniciar la app.
+- [ ] **Eliminar Dexie Seed:** Dejar de depender de `seedDatabase()` en el frontend.
 
-## Fase 7: Domicilios
-- [ ] Registro de cliente (nombre, dirección, teléfono)
-- [ ] Historial de clientes frecuentes
-- [ ] Estado de entrega
+### 5. Gestión de Pedidos (Orders & Cart)
+- [ ] **Crear Pedido:** `cartStore.ts` o `ticketService.ts` deben enviar `POST /api/orders` al confirmar.
+- [ ] **Sincronización:** Las vistas de Cocina y Mesas deben hacer polling (o usar WebSocket futuro) a `/api/orders` para ver cambios de otros dispositivos.
 
-## Fase 8: Pagos y Cierres
-- [ ] Registro de pagos (efectivo/tarjeta)
-- [ ] Impresión de recibo (térmica o PDF)
-- [ ] Cierre de caja diario
-- [ ] Reportes de ventas
+### 6. Limpieza
+- [ ] **Eliminar Dexie:** Remover `src/db/database.ts` y desinstalar `dexie`, `dexie-react-hooks`.
 
-## Fase 9: Sincronización (VPS - Futuro)
-- [ ] API REST con Node.js/Express
-- [ ] Sincronización bidireccional
-- [ ] Backup automático
+## 🔄 Verificación
 
----
+- Login funciona con PIN del backend.
 
-## 📝 Revisión
-_Se actualizará al completar las tareas_
+- Mesero crea pedido en Tablet -> Cocina lo ve en Monitor -> Caja lo cobra en PC.
+
+
+
+### 7. Optimización y Mejora de Reportes
+
+
+
+- [x] **Backend: Filtrado por fecha:** Modificar `Order.getByStatus` o crear `Order.getCompletedByDateRange` para filtrar en la DB.
+
+
+
+- [x] **API Client:** Actualizar `ordersApi.getAll` para soportar parámetros de fecha (`startDate`, `endDate`).
+
+
+
+- [x] **Frontend: Refactorizar Reports.tsx:** Usar la API optimizada y mejorar la visualización de datos.
+
+
+
+- [x] **Métricas Adicionales:** Añadir reportes de ventas por categoría y por método de pago.
+
+
+
+- [ ] **Exportación:** (Opcional) Añadir botón para descargar reporte en PDF o Excel.
+
+
+
+

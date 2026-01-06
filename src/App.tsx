@@ -1,52 +1,73 @@
-import { useEffect, useState } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { Layout } from './components/layout/Layout'
 import { Home } from './pages/Home'
 import { Orders } from './pages/Orders'
 import { Kitchen } from './pages/Kitchen'
 import { Menu } from './pages/Menu'
+import { Reports } from './pages/Reports'
 import { Tables } from './pages/Tables'
-import { seedDatabase } from './db/database'
+import { Login } from './pages/Login'
+import { CashRegister } from './pages/CashRegister'
+import { Users } from './pages/Users'
+import { ManageTables } from './pages/ManageTables'
+import { ProtectedRoute } from './components/auth/ProtectedRoute'
+import { CashGuard } from './components/cash/CashGuard'
 
 function App() {
-    const [isReady, setIsReady] = useState(false)
-
-    useEffect(() => {
-        seedDatabase()
-            .then(() => setIsReady(true))
-            .catch(err => {
-                console.error('Error seeding database:', err)
-                setIsReady(true)
-            })
-    }, [])
-
-    if (!isReady) {
-        return (
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100vh',
-                background: '#1a1a2e',
-                color: '#fff',
-                fontSize: '1.5rem'
-            }}>
-                Cargando...
-            </div>
-        )
-    }
-
     return (
-        <Layout>
-            <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/orders" element={<Orders />} />
-                <Route path="/orders/:tableId" element={<Orders />} />
-                <Route path="/kitchen" element={<Kitchen />} />
-                <Route path="/menu" element={<Menu />} />
-                <Route path="/tables" element={<Tables />} />
-            </Routes>
-        </Layout>
+        <Routes>
+            <Route path="/login" element={<Login />} />
+
+            <Route path="/" element={
+                <ProtectedRoute>
+                    <Layout>
+                        <Outlet />
+                    </Layout>
+                </ProtectedRoute>
+            }>
+                {/* Rutas que requieren caja abierta */}
+                <Route element={<CashGuard><Outlet /></CashGuard>}>
+                    <Route index element={<Home />} />
+                    <Route path="tables" element={<Tables />} />
+                    <Route path="orders" element={<Orders />} />
+                    <Route path="orders/:tableId" element={<Orders />} />
+                </Route>
+
+                <Route path="kitchen" element={<Kitchen />} />
+
+                <Route path="cash" element={
+                    <ProtectedRoute permission="canManageCash">
+                        <CashRegister />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="menu" element={
+                    <ProtectedRoute permission="canManageMenu">
+                        <Menu />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="reports" element={
+                    <ProtectedRoute permission="canViewReports">
+                        <Reports />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="users" element={
+                    <ProtectedRoute permission="canManageUsers">
+                        <Users />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="manage-tables" element={
+                    <ProtectedRoute permission="canManageMenu">
+                        <ManageTables />
+                    </ProtectedRoute>
+                } />
+            </Route>
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
     )
 }
 

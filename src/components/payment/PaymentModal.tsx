@@ -1,8 +1,11 @@
-import { useState } from 'react'
-import { db } from '@/db/database'
+import { useState, useEffect } from 'react'
+import { fetchApi } from '@/services/api'
+import { useToast } from '@/context/ToastContext'
 import { X, Banknote, CreditCard, Check, Receipt } from 'lucide-react'
-import type { Order, PaymentMethod } from '@/types'
+import type { Order, PaymentMethod, AppConfig } from '@/types'
+import { useCashStore } from '@/stores/cashStore'
 import styles from './PaymentModal.module.css'
+import { generateTicketPDF } from '@/services/ticketService'
 
 interface PaymentModalProps {
     order: Order
@@ -12,9 +15,20 @@ interface PaymentModalProps {
 }
 
 export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: PaymentModalProps) {
+    const { addToast } = useToast()
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
     const [receivedAmount, setReceivedAmount] = useState<string>('')
     const [isProcessing, setIsProcessing] = useState(false)
+    const [showSuccess, setShowSuccess] = useState(false)
+    const { currentSession } = useCashStore()
+
+    // Resetear valores cuando cambie la orden
+    useEffect(() => {
+        setPaymentMethod('cash')
+        setReceivedAmount('')
+        setIsProcessing(false)
+        setShowSuccess(false)
+    }, [order.id])
 
     const total = order.total
     const received = parseFloat(receivedAmount) || 0
@@ -30,35 +44,119 @@ export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: P
 
     const quickAmounts = [20000, 50000, 100000]
 
+    const handlePrint = async () => {
+        try {
+            const config = await fetchApi<AppConfig>('/config')
+            generateTicketPDF({
+                ...order,
+                status: 'completed',
+                paymentStatus: 'paid',
+                paymentMethod,
+                paidAmount: paymentMethod === 'cash' ? received : total,
+                completedAt: new Date()
+            }, config)
+        } catch (error) {
+            console.error('Error fetching config for PDF:', error)
+            addToast('error', 'Error', 'No se pudo generar el ticket')
+        }
+    }
+
     const handlePayment = async () => {
         if (paymentMethod === 'cash' && received < total) return
 
         setIsProcessing(true)
 
         try {
-            // Actualizar pedido como pagado
-            await db.orders.update(order.id!, {
-                status: 'completed',
-                paymentStatus: 'paid',
-                paymentMethod,
-                paidAmount: paymentMethod === 'cash' ? received : total,
-                completedAt: new Date()
+            const completedAt = new Date()
+            const paidAmount = paymentMethod === 'cash' ? received : total
+
+            // 1. Actualizar pedido como pagado
+            await fetchApi(`/orders/${order.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    status: 'completed',
+                    paymentStatus: 'paid',
+                    paymentMethod,
+                    paidAmount,
+                    completedAt
+                })
             })
 
-            // Liberar la mesa
-            if (order.tableId) {
-                await db.restaurantTables.update(order.tableId, {
-                    status: 'available',
-                    currentOrderId: undefined
+            // 2. Actualizar sesión de caja
+            if (currentSession && currentSession.id) {
+                const isCash = paymentMethod === 'cash'
+                await fetchApi(`/cash-sessions/${currentSession.id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        cashSales: isCash ? (currentSession.cashSales || 0) + total : currentSession.cashSales,
+                        cardSales: !isCash ? (currentSession.cardSales || 0) + total : currentSession.cardSales,
+                        totalSales: (currentSession.totalSales || 0) + total,
+                        ordersCount: (currentSession.ordersCount || 0) + 1
+                    })
                 })
             }
 
-            onPaymentComplete()
+            // 3. Liberar la mesa
+            if (order.tableId) {
+                await fetchApi(`/tables/${order.tableId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        status: 'available',
+                        currentOrderId: null
+                    })
+                })
+            }
+
+            setShowSuccess(true)
         } catch (error) {
             console.error('Error processing payment:', error)
+            addToast('error', 'Error en el pago', 'No se pudo procesar el pago')
         } finally {
             setIsProcessing(false)
         }
+    }
+
+    const handleFinish = () => {
+        onPaymentComplete()
+    }
+
+    if (showSuccess) {
+        return (
+            <div className={styles.overlay} onClick={handleFinish}>
+                <div className={`${styles.modal} ${styles.successModal}`} onClick={e => e.stopPropagation()}>
+                    <div className={styles.successHeader}>
+                        <div className={styles.successIcon}>
+                            <Check size={48} />
+                        </div>
+                        <h2 className={styles.title}>¡Pago Exitoso!</h2>
+                        <p className={styles.subtitle}>La cuenta de {tableName} ha sido pagada.</p>
+                    </div>
+
+                    <div className={styles.successStats}>
+                        <div className={styles.statLine}>
+                            <span>Total:</span>
+                            <span className={styles.statBold}>{formatPrice(total)}</span>
+                        </div>
+                        {paymentMethod === 'cash' && (
+                            <div className={styles.statLine}>
+                                <span>Cambio:</span>
+                                <span className={styles.statChange}>{formatPrice(change)}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className={styles.successActions}>
+                        <button className={styles.printBtn} onClick={handlePrint}>
+                            <Receipt size={20} />
+                            <span>Descargar Ticket</span>
+                        </button>
+                        <button className={styles.finishBtn} onClick={handleFinish}>
+                            <span>Finalizar</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -78,8 +176,8 @@ export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: P
                 <div className={styles.summary}>
                     <h3 className={styles.sectionTitle}>Resumen del Pedido</h3>
                     <ul className={styles.itemsList}>
-                        {order.items.map(item => (
-                            <li key={item.id} className={styles.item}>
+                        {order.items.map((item, index) => (
+                            <li key={index} className={styles.item}>
                                 <span className={styles.itemQty}>{item.quantity}x</span>
                                 <span className={styles.itemName}>{item.productName}</span>
                                 <span className={styles.itemPrice}>{formatPrice(item.totalPrice)}</span>

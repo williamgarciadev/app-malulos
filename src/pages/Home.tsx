@@ -1,6 +1,7 @@
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '@/db/database'
+import { fetchApi } from '@/services/api'
+import { usePolling } from '@/hooks/usePolling'
 import {
     LayoutGrid,
     ShoppingCart,
@@ -9,27 +10,49 @@ import {
     TrendingUp,
     Clock
 } from 'lucide-react'
+import type { Order, RestaurantTable } from '@/types'
 import styles from './Home.module.css'
 
 export function Home() {
     const navigate = useNavigate()
-
-    // Estadísticas en tiempo real
-    const pendingOrders = useLiveQuery(
-        () => db.orders.where('status').anyOf(['pending', 'confirmed', 'preparing']).count()
-    )
-
-    const todayOrders = useLiveQuery(async () => {
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        return db.orders.where('createdAt').above(today).count()
+    const [stats, setStats] = useState({
+        pendingOrders: 0,
+        todayOrders: 0,
+        occupiedTables: 0,
+        totalTables: 0
     })
 
-    const occupiedTables = useLiveQuery(
-        () => db.tables.where('status').equals('occupied').count()
-    )
+    const loadStats = useCallback(async () => {
+        try {
+            const [orders, tables] = await Promise.all([
+                fetchApi<Order[]>('/orders'),
+                fetchApi<RestaurantTable[]>('/tables')
+            ])
 
-    const totalTables = useLiveQuery(() => db.tables.count())
+            const now = new Date()
+            now.setHours(0, 0, 0, 0)
+
+            const pending = orders.filter(o => ['pending', 'confirmed', 'preparing'].includes(o.status)).length
+            const today = orders.filter(o => new Date(o.createdAt) >= now).length
+            const occupied = tables.filter(t => t.status === 'occupied').length
+            const total = tables.length
+
+            setStats({
+                pendingOrders: pending,
+                todayOrders: today,
+                occupiedTables: occupied,
+                totalTables: total
+            })
+        } catch (error) {
+            console.error('Error loading home stats:', error)
+        }
+    }, [])
+
+    useEffect(() => {
+        loadStats()
+    }, [loadStats])
+
+    usePolling(loadStats, 15000)
 
     const quickActions = [
         {
@@ -41,8 +64,7 @@ export function Home() {
         {
             icon: Truck,
             label: 'Nuevo Domicilio',
-            color: 'secondary',
-            onClick: () => navigate('/orders?type=delivery')
+            color: 'orders?type=delivery'
         },
         {
             icon: ShoppingCart,
@@ -78,7 +100,7 @@ export function Home() {
                         <ShoppingCart size={24} />
                     </div>
                     <div className={styles.statInfo}>
-                        <span className={styles.statValue}>{pendingOrders ?? 0}</span>
+                        <span className={styles.statValue}>{stats.pendingOrders}</span>
                         <span className={styles.statLabel}>Pedidos Activos</span>
                     </div>
                 </div>
@@ -89,7 +111,7 @@ export function Home() {
                     </div>
                     <div className={styles.statInfo}>
                         <span className={styles.statValue}>
-                            {occupiedTables ?? 0}/{totalTables ?? 0}
+                            {stats.occupiedTables}/{stats.totalTables}
                         </span>
                         <span className={styles.statLabel}>Mesas Ocupadas</span>
                     </div>
@@ -100,7 +122,7 @@ export function Home() {
                         <TrendingUp size={24} />
                     </div>
                     <div className={styles.statInfo}>
-                        <span className={styles.statValue}>{todayOrders ?? 0}</span>
+                        <span className={styles.statValue}>{stats.todayOrders}</span>
                         <span className={styles.statLabel}>Pedidos Hoy</span>
                     </div>
                 </div>

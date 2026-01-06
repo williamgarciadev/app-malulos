@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '@/db/database'
-import { Users, Receipt, Plus } from 'lucide-react'
+import { fetchApi } from '@/services/api'
+import { usePolling } from '@/hooks/usePolling'
+import { useToast } from '@/context/ToastContext'
+import { Users, Receipt, Plus, Loader2 } from 'lucide-react'
 import { PaymentModal } from '@/components/payment/PaymentModal'
 import type { TableStatus, RestaurantTable, Order } from '@/types'
 import styles from './Tables.module.css'
@@ -23,30 +24,46 @@ const statusColors: Record<TableStatus, string> = {
 
 export function Tables() {
     const navigate = useNavigate()
+    const { addToast } = useToast()
+    const [tables, setTables] = useState<RestaurantTable[]>([])
+    const [activeOrders, setActiveOrders] = useState<Order[]>([])
+    const [isLoading, setIsLoading] = useState(true)
     const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null)
     const [orderToPay, setOrderToPay] = useState<Order | null>(null)
 
-    const tables = useLiveQuery<RestaurantTable[]>(() =>
-        db.restaurantTables.toArray().then(t => t.sort((a, b) => a.number - b.number))
-    )
+    const loadData = useCallback(async () => {
+        try {
+            const [tablesData, ordersData] = await Promise.all([
+                fetchApi<RestaurantTable[]>('/tables'),
+                fetchApi<Order[]>('/orders?active=true')
+            ])
+            setTables(tablesData.sort((a, b) => a.number - b.number))
+            setActiveOrders(ordersData)
+            setIsLoading(false)
+        } catch (error) {
+            console.error('Error loading tables data:', error)
+            // No reseteamos isLoading a false si es la primera carga y falló estrepitosamente, 
+            // pero para polling simplemente logueamos el error
+        }
+    }, [])
 
-    // Obtener pedidos activos por mesa
-    const activeOrders = useLiveQuery<Order[]>(() =>
-        db.orders
-            .where('status')
-            .anyOf(['pending', 'confirmed', 'preparing', 'ready'])
-            .toArray()
-    )
+    // Carga inicial
+    useEffect(() => {
+        loadData()
+    }, [loadData])
 
-    const getTableOrder = (tableId: number) => {
-        return activeOrders?.find(o => o.tableId === tableId)
+    // Polling cada 10 segundos para mantener sincronización entre dispositivos
+    usePolling(loadData, 10000)
+
+    const getTableOrder = (table: RestaurantTable) => {
+        if (table.status === 'available') return null
+        return activeOrders?.find(o => o.tableId === table.id)
     }
 
     const handleTableClick = (table: RestaurantTable) => {
         if (table.status === 'available') {
             navigate(`/orders/${table.id}`)
         } else if (table.status === 'occupied' || table.status === 'paying') {
-            // Mostrar opciones
             setSelectedTable(table)
         }
     }
@@ -59,20 +76,32 @@ export function Tables() {
     }
 
     const handleRequestBill = async () => {
-        if (!selectedTable) return
+        if (!selectedTable || !selectedTable.id) return
 
-        const order = getTableOrder(selectedTable.id!)
+        const order = getTableOrder(selectedTable)
         if (order) {
-            // Cambiar estado de mesa a "paying"
-            await db.restaurantTables.update(selectedTable.id!, { status: 'paying' })
-            setOrderToPay(order)
-            setSelectedTable(null)
+            try {
+                // Actualizar estado de mesa en el servidor
+                await fetchApi(`/tables/${selectedTable.id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ status: 'paying' })
+                })
+                
+                // Recargar datos inmediatamente
+                await loadData()
+                
+                setOrderToPay(order)
+                setSelectedTable(null)
+            } catch (error) {
+                console.error('Error updating table status:', error)
+                addToast('error', 'Error', 'No se pudo actualizar el estado de la mesa')
+            }
         }
     }
 
     const handlePaymentComplete = () => {
         setOrderToPay(null)
-        // Mesa se libera automáticamente en PaymentModal
+        loadData() // Recargar para ver la mesa libre
     }
 
     const formatPrice = (price: number) => {
@@ -81,6 +110,15 @@ export function Tables() {
             currency: 'COP',
             minimumFractionDigits: 0
         }).format(price)
+    }
+
+    if (isLoading && tables.length === 0) {
+        return (
+            <div className={styles.loadingContainer}>
+                <Loader2 className={styles.spinner} />
+                <p>Cargando mesas...</p>
+            </div>
+        )
     }
 
     return (
@@ -98,8 +136,8 @@ export function Tables() {
             </header>
 
             <div className={styles.grid}>
-                {tables?.map((table) => {
-                    const order = getTableOrder(table.id!)
+                {tables.map((table) => {
+                    const order = getTableOrder(table)
                     return (
                         <button
                             key={table.id}
@@ -129,10 +167,10 @@ export function Tables() {
                     <div className={styles.optionsModal} onClick={e => e.stopPropagation()}>
                         <h3 className={styles.optionsTitle}>{selectedTable.name}</h3>
 
-                        {getTableOrder(selectedTable.id!) && (
+                        {getTableOrder(selectedTable) && (
                             <div className={styles.orderInfo}>
                                 <span>Pedido actual:</span>
-                                <strong>{formatPrice(getTableOrder(selectedTable.id!)!.total)}</strong>
+                                <strong>{formatPrice(getTableOrder(selectedTable)!.total)}</strong>
                             </div>
                         )}
 
@@ -142,7 +180,7 @@ export function Tables() {
                                 <span>Agregar Productos</span>
                             </button>
 
-                            {getTableOrder(selectedTable.id!) && (
+                            {getTableOrder(selectedTable) && (
                                 <button
                                     className={`${styles.optionBtn} ${styles.optionBill}`}
                                     onClick={handleRequestBill}
@@ -167,7 +205,7 @@ export function Tables() {
             {orderToPay && (
                 <PaymentModal
                     order={orderToPay}
-                    tableName={tables?.find(t => t.id === orderToPay.tableId)?.name || 'Mesa'}
+                    tableName={tables.find(t => t.id === orderToPay.tableId)?.name || 'Mesa'}
                     onClose={() => setOrderToPay(null)}
                     onPaymentComplete={handlePaymentComplete}
                 />
