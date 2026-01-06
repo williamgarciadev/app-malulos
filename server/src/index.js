@@ -3,9 +3,14 @@ import cors from 'cors';
 import { Product } from './models/Product.js';
 import { Order } from './models/Order.js';
 import { Category, RestaurantTable, User, CashSession, Config } from './models/index.js';
+import { initTelegramBot } from './services/telegramBot.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Inicializar Bot de Telegram (usar token de variable de entorno o pasar directamente)
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+initTelegramBot(BOT_TOKEN);
 
 // Middleware
 app.use(cors());

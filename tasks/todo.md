@@ -57,6 +57,13 @@ El objetivo es centralizar la lógica de negocio y persistencia en el backend (S
 
 - [ ] **Exportación:** (Opcional) Añadir botón para descargar reporte en PDF o Excel.
 
+### 8. Bot de Pedidos (Telegram)
+- [ ] **Estructura base:** Crear `server/src/services/telegramBot.js`.
+- [ ] **Menú Interactivo:** Mostrar categorías y productos reales de la DB.
+- [ ] **Gestión de Carrito:** Lógica para añadir/remover items desde el chat.
+- [ ] **Creación de Orden:** Integrar checkout con la tabla `orders` del sistema.
+- [ ] **Notificaciones:** Confirmar al usuario cuando su pedido cambie de estado.
+
 
 
 

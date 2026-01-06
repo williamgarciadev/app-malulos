@@ -9,12 +9,17 @@
     "start": "node src/index.js",
     "init-db": "node src/config/initDb.js"
   },
-  "keywords": ["pos", "restaurant", "api"],
+  "keywords": [
+    "pos",
+    "restaurant",
+    "api"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "better-sqlite3": "^11.8.0",
     "cors": "^2.8.5",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "telegraf": "^4.16.3"
   }
 }
