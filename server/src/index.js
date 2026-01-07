@@ -158,16 +158,12 @@ app.get('/api/users', async (req, res) => {
 app.post('/api/users/login', async (req, res) => {
     try {
         const { pin } = req.body;
-        console.log(`🔐 Intento de login con PIN: ${pin}`);
-
-        // Debug: verificar usuarios existentes
-        const allUsers = await User.getAll();
-        console.log(`📋 Usuarios en BD: ${allUsers.length}`, allUsers.map(u => ({ name: u.name, pin: u.pin, isactive: u.isactive })));
+        console.log(`🔐 Intento de login`);
 
         const user = await User.getByPin(pin);
 
         if (!user) {
-            console.log(`❌ Intento de login fallido para PIN: ${pin}`);
+            console.log(`❌ Login fallido - PIN no encontrado o usuario inactivo`);
             return res.status(401).json({ error: 'PIN incorrecto' });
         }
 
@@ -249,13 +245,13 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Malulos POS API running on PostgreSQL' });
 });
 
-// Debug endpoint temporal - ver usuarios en BD
+// Debug endpoint - ver estado de usuarios (sin exponer PINs)
 app.get('/api/debug/users', async (req, res) => {
     try {
         const users = await User.getAll();
         res.json({
             count: users.length,
-            users: users.map(u => ({ id: u.id, name: u.name, pin: u.pin, role: u.role, isactive: u.isactive }))
+            users: users.map(u => ({ id: u.id, name: u.name, role: u.role, isactive: u.isactive }))
         });
     } catch (error) {
         res.status(500).json({ error: error.message });

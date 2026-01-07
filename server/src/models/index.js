@@ -90,9 +90,7 @@ export class User {
     }
 
     static async getByPin(pin) {
-        console.log(`🔍 Buscando usuario con PIN: ${pin}`);
         const res = await pool.query('SELECT * FROM users WHERE pin = $1 AND isactive = 1', [pin]);
-        console.log(`🔍 Resultado: ${res.rows.length > 0 ? 'Encontrado' : 'No encontrado'}`);
         return res.rows[0];
     }
 

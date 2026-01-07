@@ -160,9 +160,9 @@ export const initSchema = async () => {
         }
 
         // 2. Verificar usuarios existentes
-        const existingUsers = await query('SELECT id, name, pin, role, isactive FROM users');
+        const existingUsers = await query('SELECT id, name, role, isactive FROM users');
         console.log(`📋 Usuarios existentes en BD: ${existingUsers.rows.length}`);
-        existingUsers.rows.forEach(u => console.log(`   - ${u.name} (PIN: ${u.pin}, Role: ${u.role}, Active: ${u.isactive})`));
+        existingUsers.rows.forEach(u => console.log(`   - ${u.name} (Role: ${u.role}, Active: ${u.isactive})`));
 
         // 3. Asegurar Usuario Admin (¡Crucial para el PIN!)
         const userCheck = await query('SELECT * FROM users WHERE pin = $1', ['1234']);
@@ -182,7 +182,7 @@ export const initSchema = async () => {
         }
 
         // 4. Verificar estado final
-        const finalCheck = await query('SELECT id, name, pin, role, isactive FROM users');
+        const finalCheck = await query('SELECT id, name, role, isactive FROM users');
         console.log(`📋 Estado final - Usuarios: ${finalCheck.rows.length}`);
 
     } catch (err) {
