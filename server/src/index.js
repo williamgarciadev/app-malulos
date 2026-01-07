@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initSchema } from './config/database.js';
+import { initSchema, pool } from './config/database.js';
 import { Category, RestaurantTable, User, CashSession, Config } from './models/index.js';
 import { Product } from './models/Product.js';
 import { Order } from './models/Order.js';
@@ -158,9 +158,18 @@ app.get('/api/users', async (req, res) => {
 app.post('/api/users/login', async (req, res) => {
     try {
         const { pin } = req.body;
-        console.log(`🔐 Intento de login`);
+        console.log(`🔐 Intento de login con PIN recibido`);
+
+        // Debug: ver todos los usuarios primero
+        const allUsers = await pool.query('SELECT id, name, pin, role, isactive FROM users');
+        console.log(`📋 DEBUG - Usuarios en BD:`, JSON.stringify(allUsers.rows));
+
+        // Intentar buscar sin filtro de isactive
+        const rawQuery = await pool.query('SELECT * FROM users WHERE pin = $1', [pin]);
+        console.log(`🔍 DEBUG - Query sin filtro isactive:`, JSON.stringify(rawQuery.rows));
 
         const user = await User.getByPin(pin);
+        console.log(`🔍 DEBUG - getByPin result:`, user ? JSON.stringify(user) : 'null');
 
         if (!user) {
             console.log(`❌ Login fallido - PIN no encontrado o usuario inactivo`);
