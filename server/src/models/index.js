@@ -80,7 +80,7 @@ export class RestaurantTable {
 // Modelo de Usuarios
 export class User {
     static async getAll() {
-        const res = await pool.query('SELECT * FROM users WHERE isActive = 1');
+        const res = await pool.query('SELECT * FROM users WHERE isactive = 1');
         return res.rows;
     }
 
@@ -90,13 +90,13 @@ export class User {
     }
 
     static async getByPin(pin) {
-        const res = await pool.query('SELECT * FROM users WHERE pin = $1 AND isActive = 1', [pin]);
+        const res = await pool.query('SELECT * FROM users WHERE pin = $1 AND isactive = 1', [pin]);
         return res.rows[0];
     }
 
     static async create(data) {
         const res = await pool.query(`
-            INSERT INTO users (name, pin, role, isActive)
+            INSERT INTO users (name, pin, role, isactive)
             VALUES ($1, $2, $3, $4) RETURNING *
         `, [data.name, data.pin, data.role, data.isActive ? 1 : 0]);
         return res.rows[0];
@@ -109,7 +109,9 @@ export class User {
 
         Object.keys(data).forEach(key => {
             if (key !== 'id' && key !== 'createdAt' && data[key] !== undefined) {
-                fields.push(`${key} = $${i}`);
+                // Convertir isActive a isactive para PostgreSQL
+                const colName = key === 'isActive' ? 'isactive' : key;
+                fields.push(`${colName} = $${i}`);
                 if (key === 'isActive') values.push(data[key] ? 1 : 0);
                 else values.push(data[key]);
                 i++;

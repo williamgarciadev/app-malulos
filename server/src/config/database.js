@@ -151,7 +151,7 @@ export const initSchema = async () => {
         }
 
         console.log('✅ Esquema base verificado.');
-        
+
         // 1. Asegurar Configuración
         const configCheck = await query('SELECT count(*) FROM config');
         if (parseInt(configCheck.rows[0].count) === 0) {
@@ -159,18 +159,34 @@ export const initSchema = async () => {
             console.log('🌱 Configuración inicial creada.');
         }
 
-        // 2. Asegurar Usuario Admin (¡Crucial para el PIN!)
+        // 2. Verificar usuarios existentes
+        const existingUsers = await query('SELECT id, name, role, isactive FROM users');
+        console.log(`📋 Usuarios existentes en BD: ${existingUsers.rows.length}`);
+        existingUsers.rows.forEach(u => console.log(`   - ${u.name} (Role: ${u.role}, Active: ${u.isactive})`));
+
+        // 3. Asegurar Usuario Admin (¡Crucial para el PIN!)
         const userCheck = await query('SELECT * FROM users WHERE pin = $1', ['1234']);
         if (userCheck.rows.length === 0) {
-            await query(`INSERT INTO users (name, pin, role, isActive) VALUES ('Admin', '1234', 'admin', 1)`);
+            console.log('🔧 Usuario Admin no existe, creando...');
+            await query(`INSERT INTO users (name, pin, role, isactive) VALUES ('Admin', '1234', 'admin', 1)`);
             console.log('🌱 Usuario Admin (1234) creado exitosamente.');
-        } else if (userCheck.rows[0].isactive === 0) {
-            // Si el usuario existe pero está inactivo, lo activamos
-            await query('UPDATE users SET isActive = 1 WHERE pin = $1', ['1234']);
-            console.log('🌱 Usuario Admin (1234) reactivado.');
+        } else {
+            const adminUser = userCheck.rows[0];
+            console.log(`📌 Usuario Admin encontrado: isactive=${adminUser.isactive}`);
+            if (adminUser.isactive === 0 || adminUser.isactive === false) {
+                await query('UPDATE users SET isactive = 1 WHERE pin = $1', ['1234']);
+                console.log('🌱 Usuario Admin (1234) reactivado.');
+            } else {
+                console.log('✅ Usuario Admin ya está activo.');
+            }
         }
+
+        // 4. Verificar estado final
+        const finalCheck = await query('SELECT id, name, role, isactive FROM users');
+        console.log(`📋 Estado final - Usuarios: ${finalCheck.rows.length}`);
 
     } catch (err) {
         console.error('❌ Error crítico en la inicialización de la base de datos:', err);
+        console.error(err.stack);
     }
 };
