@@ -2,27 +2,88 @@ import { pool } from '../config/database.js';
 
 export class Product {
     static async getAll() {
-        const res = await pool.query('SELECT * FROM products ORDER BY name ASC');
+        const res = await pool.query(`
+            SELECT
+                id,
+                categoryId AS "categoryId",
+                name,
+                description,
+                basePrice AS "basePrice",
+                image,
+                sizes,
+                modifierGroups AS "modifierGroups",
+                isCombo AS "isCombo",
+                comboItems AS "comboItems",
+                isActive AS "isActive",
+                createdAt AS "createdAt"
+            FROM products
+            WHERE isActive = 1
+            ORDER BY name ASC
+        `);
         return res.rows;
     }
 
     static async getById(id) {
-        const res = await pool.query('SELECT * FROM products WHERE id = $1', [id]);
+        const res = await pool.query(`
+            SELECT
+                id,
+                categoryId AS "categoryId",
+                name,
+                description,
+                basePrice AS "basePrice",
+                image,
+                sizes,
+                modifierGroups AS "modifierGroups",
+                isCombo AS "isCombo",
+                comboItems AS "comboItems",
+                isActive AS "isActive",
+                createdAt AS "createdAt"
+            FROM products
+            WHERE id = $1
+        `, [id]);
         return res.rows[0];
     }
 
     static async getByCategory(categoryId) {
-        const res = await pool.query('SELECT * FROM products WHERE categoryId = $1', [categoryId]);
+        const res = await pool.query(`
+            SELECT
+                id,
+                categoryId AS "categoryId",
+                name,
+                description,
+                basePrice AS "basePrice",
+                image,
+                sizes,
+                modifierGroups AS "modifierGroups",
+                isCombo AS "isCombo",
+                comboItems AS "comboItems",
+                isActive AS "isActive",
+                createdAt AS "createdAt"
+            FROM products
+            WHERE categoryId = $1 AND isActive = 1
+        `, [categoryId]);
         return res.rows;
     }
 
     static async create(data) {
         const res = await pool.query(`
             INSERT INTO products (
-                categoryId, name, description, basePrice, image, 
+                categoryId, name, description, basePrice, image,
                 sizes, modifierGroups, isCombo, comboItems, isActive
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            RETURNING *
+            RETURNING
+                id,
+                categoryId AS "categoryId",
+                name,
+                description,
+                basePrice AS "basePrice",
+                image,
+                sizes,
+                modifierGroups AS "modifierGroups",
+                isCombo AS "isCombo",
+                comboItems AS "comboItems",
+                isActive AS "isActive",
+                createdAt AS "createdAt"
         `, [
             data.categoryId,
             data.name,
@@ -58,7 +119,23 @@ export class Product {
         });
 
         values.push(id);
-        const res = await pool.query(`UPDATE products SET ${fields.join(', ')} WHERE id = $${i} RETURNING *`, values);
+        const res = await pool.query(`
+            UPDATE products SET ${fields.join(', ')}
+            WHERE id = $${i}
+            RETURNING
+                id,
+                categoryId AS "categoryId",
+                name,
+                description,
+                basePrice AS "basePrice",
+                image,
+                sizes,
+                modifierGroups AS "modifierGroups",
+                isCombo AS "isCombo",
+                comboItems AS "comboItems",
+                isActive AS "isActive",
+                createdAt AS "createdAt"
+        `, values);
         return res.rows[0];
     }
 

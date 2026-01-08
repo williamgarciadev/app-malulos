@@ -8,6 +8,7 @@ interface CashState {
 
     // Acciones
     checkActiveSession: () => Promise<void>
+    refreshSession: () => Promise<void>
     openSession: (userId: number, userName: string, openingAmount: number) => Promise<void>
     closeSession: (actualAmount: number, notes?: string) => Promise<void>
     addMovement: (type: 'in' | 'out', amount: number, reason: string, userId: number, userName: string) => Promise<void>
@@ -26,6 +27,16 @@ export const useCashStore = create<CashState>((set, get) => ({
         } catch (error) {
             console.error('Error checking active session:', error)
             set({ isLoading: false })
+        }
+    },
+
+    refreshSession: async () => {
+        try {
+            // Recargar sesión activa sin mostrar loading
+            const activeSession = await fetchApi<CashSession | null>('/cash-sessions/active')
+            set({ currentSession: activeSession })
+        } catch (error) {
+            console.error('Error refreshing session:', error)
         }
     },
 

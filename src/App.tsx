@@ -8,6 +8,7 @@ import { Reports } from './pages/Reports'
 import { Tables } from './pages/Tables'
 import { Login } from './pages/Login'
 import { CashRegister } from './pages/CashRegister'
+import { TelegramOrders } from './pages/TelegramOrders'
 import { Users } from './pages/Users'
 import { ManageTables } from './pages/ManageTables'
 import { Customers } from './pages/Customers'
@@ -36,6 +37,12 @@ function App() {
 
                 <Route path="kitchen" element={<Kitchen />} />
                 <Route path="customers" element={<Customers />} />
+
+                <Route path="telegram-orders" element={
+                    <ProtectedRoute permission="canManageCash">
+                        <TelegramOrders />
+                    </ProtectedRoute>
+                } />
 
                 <Route path="cash" element={
                     <ProtectedRoute permission="canManageCash">

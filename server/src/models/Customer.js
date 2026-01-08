@@ -1,23 +1,34 @@
 import { pool } from '../config/database.js';
 
+const CUSTOMER_SELECT_FIELDS = `
+    id,
+    name,
+    phone,
+    address,
+    notes,
+    telegramId AS "telegramId",
+    createdAt AS "createdAt",
+    lastOrderAt AS "lastOrderAt"
+`;
+
 export class Customer {
     static async getAll() {
-        const res = await pool.query('SELECT * FROM customers ORDER BY name ASC');
+        const res = await pool.query(`SELECT ${CUSTOMER_SELECT_FIELDS} FROM customers ORDER BY name ASC`);
         return res.rows;
     }
 
     static async getById(id) {
-        const res = await pool.query('SELECT * FROM customers WHERE id = $1', [id]);
+        const res = await pool.query(`SELECT ${CUSTOMER_SELECT_FIELDS} FROM customers WHERE id = $1`, [id]);
         return res.rows[0];
     }
 
     static async getByPhone(phone) {
-        const res = await pool.query('SELECT * FROM customers WHERE phone = $1', [phone]);
+        const res = await pool.query(`SELECT ${CUSTOMER_SELECT_FIELDS} FROM customers WHERE phone = $1`, [phone]);
         return res.rows[0];
     }
 
     static async getByTelegramId(telegramId) {
-        const res = await pool.query('SELECT * FROM customers WHERE telegramId = $1', [telegramId]);
+        const res = await pool.query(`SELECT ${CUSTOMER_SELECT_FIELDS} FROM customers WHERE telegramId = $1`, [telegramId]);
         return res.rows[0];
     }
 
@@ -25,7 +36,7 @@ export class Customer {
         const res = await pool.query(`
             INSERT INTO customers (name, phone, address, notes, telegramId)
             VALUES ($1, $2, $3, $4, $5)
-            RETURNING *
+            RETURNING ${CUSTOMER_SELECT_FIELDS}
         `, [
             data.name,
             data.phone,
@@ -50,7 +61,11 @@ export class Customer {
         });
 
         values.push(id);
-        const res = await pool.query(`UPDATE customers SET ${fields.join(', ')} WHERE id = $${i} RETURNING *`, values);
+        const res = await pool.query(`
+            UPDATE customers SET ${fields.join(', ')}
+            WHERE id = $${i}
+            RETURNING ${CUSTOMER_SELECT_FIELDS}
+        `, values);
         return res.rows[0];
     }
 

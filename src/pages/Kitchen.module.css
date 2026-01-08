@@ -125,6 +125,7 @@
     flex-direction: column;
     gap: var(--space-sm);
     box-shadow: var(--shadow-sm);
+    transition: all var(--transition-fast);
 }
 
 .ticketPending {
@@ -133,6 +134,24 @@
 
 .ticketPreparing {
     border-left: 4px solid var(--color-preparing);
+}
+
+.ticketTelegram {
+    background: linear-gradient(135deg, rgba(0, 136, 204, 0.08) 0%, rgba(255, 107, 53, 0.08) 100%);
+    border: 2px solid rgba(0, 136, 204, 0.4);
+    box-shadow: 0 0 20px rgba(0, 136, 204, 0.2), var(--shadow-md);
+    animation: telegramPulse 3s ease-in-out infinite;
+}
+
+@keyframes telegramPulse {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(0, 136, 204, 0.2), var(--shadow-md);
+        border-color: rgba(0, 136, 204, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(0, 136, 204, 0.4), var(--shadow-lg);
+        border-color: rgba(0, 136, 204, 0.6);
+    }
 }
 
 .ticketHeader {

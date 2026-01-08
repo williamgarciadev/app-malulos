@@ -4,7 +4,17 @@ import { Customer } from './Customer.js';
 // Modelo de Categorías
 export class Category {
     static async getAll() {
-        const res = await pool.query('SELECT * FROM categories WHERE isActive = 1 ORDER BY "order"');
+        const res = await pool.query(`
+            SELECT
+                id,
+                name,
+                icon,
+                "order" AS "order",
+                isActive AS "isActive"
+            FROM categories
+            WHERE isActive = 1
+            ORDER BY "order"
+        `);
         return res.rows;
     }
 
@@ -33,12 +43,36 @@ export class Category {
 // Modelo de Mesas
 export class RestaurantTable {
     static async getAll() {
-        const res = await pool.query('SELECT * FROM restaurantTables ORDER BY number');
+        const res = await pool.query(`
+            SELECT
+                id,
+                number,
+                name,
+                status,
+                capacity,
+                currentOrderId AS "currentOrderId",
+                positionX AS "positionX",
+                positionY AS "positionY"
+            FROM restaurantTables
+            ORDER BY number
+        `);
         return res.rows;
     }
 
     static async getById(id) {
-        const res = await pool.query('SELECT * FROM restaurantTables WHERE id = $1', [id]);
+        const res = await pool.query(`
+            SELECT
+                id,
+                number,
+                name,
+                status,
+                capacity,
+                currentOrderId AS "currentOrderId",
+                positionX AS "positionX",
+                positionY AS "positionY"
+            FROM restaurantTables
+            WHERE id = $1
+        `, [id]);
         return res.rows[0];
     }
 
@@ -80,17 +114,47 @@ export class RestaurantTable {
 // Modelo de Usuarios
 export class User {
     static async getAll() {
-        const res = await pool.query('SELECT * FROM users WHERE isactive = 1');
+        const res = await pool.query(`
+            SELECT
+                id,
+                name,
+                pin,
+                role,
+                isActive AS "isActive",
+                createdAt AS "createdAt"
+            FROM users
+            WHERE isActive = 1
+        `);
         return res.rows;
     }
 
     static async getById(id) {
-        const res = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+        const res = await pool.query(`
+            SELECT
+                id,
+                name,
+                pin,
+                role,
+                isActive AS "isActive",
+                createdAt AS "createdAt"
+            FROM users
+            WHERE id = $1
+        `, [id]);
         return res.rows[0];
     }
 
     static async getByPin(pin) {
-        const res = await pool.query('SELECT * FROM users WHERE pin = $1 AND isactive = 1', [pin]);
+        const res = await pool.query(`
+            SELECT
+                id,
+                name,
+                pin,
+                role,
+                isActive AS "isActive",
+                createdAt AS "createdAt"
+            FROM users
+            WHERE pin = $1 AND isActive = 1
+        `, [pin]);
         return res.rows[0];
     }
 
@@ -127,19 +191,64 @@ export class User {
 // Modelo de Sesiones de Caja
 export class CashSession {
     static async getActive() {
-        const res = await pool.query("SELECT * FROM cashSessions WHERE status = 'open' LIMIT 1");
+        const res = await pool.query(`
+            SELECT
+                id,
+                userId AS "userId",
+                userName AS "userName",
+                openedAt AS "openedAt",
+                closedAt AS "closedAt",
+                openingAmount AS "openingAmount",
+                expectedAmount AS "expectedAmount",
+                actualAmount AS "actualAmount",
+                difference,
+                cashSales AS "cashSales",
+                cardSales AS "cardSales",
+                transferSales AS "transferSales",
+                nequiSales AS "nequiSales",
+                davipplataSales AS "davipplataSales",
+                totalSales AS "totalSales",
+                ordersCount AS "ordersCount",
+                notes,
+                status
+            FROM cashSessions
+            WHERE status = 'open'
+            LIMIT 1
+        `);
         return res.rows[0];
     }
 
     static async getById(id) {
-        const res = await pool.query('SELECT * FROM cashSessions WHERE id = $1', [id]);
+        const res = await pool.query(`
+            SELECT
+                id,
+                userId AS "userId",
+                userName AS "userName",
+                openedAt AS "openedAt",
+                closedAt AS "closedAt",
+                openingAmount AS "openingAmount",
+                expectedAmount AS "expectedAmount",
+                actualAmount AS "actualAmount",
+                difference,
+                cashSales AS "cashSales",
+                cardSales AS "cardSales",
+                transferSales AS "transferSales",
+                nequiSales AS "nequiSales",
+                davipplataSales AS "davipplataSales",
+                totalSales AS "totalSales",
+                ordersCount AS "ordersCount",
+                notes,
+                status
+            FROM cashSessions
+            WHERE id = $1
+        `, [id]);
         return res.rows[0];
     }
 
     static async create(data) {
         const res = await pool.query(`
-            INSERT INTO cashSessions (userId, userName, openingAmount, cashSales, cardSales, totalSales, ordersCount, status)
-            VALUES ($1, $2, $3, 0, 0, 0, 0, 'open') RETURNING *
+            INSERT INTO cashSessions (userId, userName, openingAmount, cashSales, cardSales, transferSales, nequiSales, davipplataSales, totalSales, ordersCount, status)
+            VALUES ($1, $2, $3, 0, 0, 0, 0, 0, 0, 0, 'open') RETURNING *
         `, [data.userId, data.userName, data.openingAmount]);
         return res.rows[0];
     }

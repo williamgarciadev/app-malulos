@@ -172,6 +172,18 @@
     color: var(--color-primary);
 }
 
+.methodNequi.methodActive {
+    border-color: #ff0083;
+    background: rgba(255, 0, 131, 0.15);
+    color: #ff0083;
+}
+
+.methodDaviplata.methodActive {
+    border-color: #e30613;
+    background: rgba(227, 6, 19, 0.15);
+    color: #e30613;
+}
+
 /* ---------- Cash Section ---------- */
 .cashSection {
     margin-bottom: var(--space-lg);

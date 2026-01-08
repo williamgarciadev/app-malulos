@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { fetchApi } from '@/services/api'
 import { useToast } from '@/context/ToastContext'
-import { X, Banknote, CreditCard, Check, Receipt } from 'lucide-react'
-import type { Order, PaymentMethod, AppConfig } from '@/types'
+import { X, Banknote, CreditCard, Check, Receipt, Smartphone, Wallet } from 'lucide-react'
+import type { Order, PaymentMethod, AppConfig, CashSession } from '@/types'
 import { useCashStore } from '@/stores/cashStore'
 import styles from './PaymentModal.module.css'
 import { generateTicketPDF } from '@/services/ticketService'
@@ -20,7 +20,7 @@ export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: P
     const [receivedAmount, setReceivedAmount] = useState<string>('')
     const [isProcessing, setIsProcessing] = useState(false)
     const [showSuccess, setShowSuccess] = useState(false)
-    const { currentSession } = useCashStore()
+    const { currentSession, refreshSession } = useCashStore()
 
     // Resetear valores cuando cambie la orden
     useEffect(() => {
@@ -46,7 +46,22 @@ export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: P
 
     const handlePrint = async () => {
         try {
-            const config = await fetchApi<AppConfig>('/config')
+            let config: AppConfig
+            try {
+                config = await fetchApi<AppConfig>('/config')
+            } catch (configError) {
+                console.warn('Using default config for PDF:', configError)
+                // Usar configuración por defecto si falla
+                config = {
+                    businessName: 'Malulos',
+                    taxRate: 0,
+                    currency: 'COP',
+                    currencySymbol: '$',
+                    printReceipt: true,
+                    soundEnabled: true
+                }
+            }
+
             generateTicketPDF({
                 ...order,
                 status: 'completed',
@@ -56,7 +71,7 @@ export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: P
                 completedAt: new Date()
             }, config)
         } catch (error) {
-            console.error('Error fetching config for PDF:', error)
+            console.error('Error generating PDF:', error)
             addToast('error', 'Error', 'No se pudo generar el ticket')
         }
     }
@@ -84,16 +99,30 @@ export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: P
 
             // 2. Actualizar sesión de caja
             if (currentSession && currentSession.id) {
-                const isCash = paymentMethod === 'cash'
+                const updates: Partial<CashSession> = {
+                    cashSales: currentSession.cashSales || 0,
+                    cardSales: currentSession.cardSales || 0,
+                    transferSales: currentSession.transferSales || 0,
+                    nequiSales: currentSession.nequiSales || 0,
+                    davipplataSales: currentSession.davipplataSales || 0,
+                    totalSales: (currentSession.totalSales || 0) + total,
+                    ordersCount: (currentSession.ordersCount || 0) + 1
+                }
+
+                // Incrementar ventas según el método
+                if (paymentMethod === 'cash') updates.cashSales! += total
+                else if (paymentMethod === 'card') updates.cardSales! += total
+                else if (paymentMethod === 'transfer') updates.transferSales! += total
+                else if (paymentMethod === 'nequi') updates.nequiSales! += total
+                else if (paymentMethod === 'daviplata') updates.davipplataSales! += total
+
                 await fetchApi(`/cash-sessions/${currentSession.id}`, {
                     method: 'PUT',
-                    body: JSON.stringify({
-                        cashSales: isCash ? (currentSession.cashSales || 0) + total : currentSession.cashSales,
-                        cardSales: !isCash ? (currentSession.cardSales || 0) + total : currentSession.cardSales,
-                        totalSales: (currentSession.totalSales || 0) + total,
-                        ordersCount: (currentSession.ordersCount || 0) + 1
-                    })
+                    body: JSON.stringify(updates)
                 })
+
+                // Recargar sesión actualizada
+                await refreshSession()
             }
 
             // 3. Liberar la mesa
@@ -211,6 +240,20 @@ export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: P
                         >
                             <CreditCard size={24} />
                             <span>Tarjeta</span>
+                        </button>
+                        <button
+                            className={`${styles.methodBtn} ${styles.methodNequi} ${paymentMethod === 'nequi' ? styles.methodActive : ''}`}
+                            onClick={() => setPaymentMethod('nequi')}
+                        >
+                            <Smartphone size={24} />
+                            <span>Nequi</span>
+                        </button>
+                        <button
+                            className={`${styles.methodBtn} ${styles.methodDaviplata} ${paymentMethod === 'daviplata' ? styles.methodActive : ''}`}
+                            onClick={() => setPaymentMethod('daviplata')}
+                        >
+                            <Wallet size={24} />
+                            <span>DaviPlata</span>
                         </button>
                     </div>
                 </div>

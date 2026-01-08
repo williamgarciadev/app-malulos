@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "init-db": "node src/config/initDb.js"
+    "seed": "node src/scripts/seed.js",
+    "check": "node src/scripts/check-data.js"
   },
   "keywords": [
     "pos",

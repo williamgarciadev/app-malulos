@@ -14,7 +14,8 @@ export const generateTicketPDF = (order: Order, config: AppConfig) => {
     // Header
     doc.setFontSize(16)
     doc.setFont('helvetica', 'bold')
-    doc.text(config.businessName, width / 2, y, { align: 'center' })
+    const businessName = config?.businessName || 'Malulos'
+    doc.text(businessName, width / 2, y, { align: 'center' })
 
     y += 6
     doc.setFontSize(8)

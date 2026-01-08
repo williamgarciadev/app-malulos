@@ -4,21 +4,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Proyecto
 
-**Malulos POS** - Sistema de Punto de Venta (POS) para restaurante de comidas rápidas con arquitectura cliente-servidor. Backend con SQLite centralizado para soportar múltiples dispositivos (meseros, cocina, caja) simultáneamente.
+**Malulos POS** - Sistema de Punto de Venta (POS) para restaurante de comidas rápidas con arquitectura cliente-servidor. Backend con PostgreSQL para soportar múltiples dispositivos (meseros, cocina, caja) simultáneamente.
 
 ## Comandos de Desarrollo
 
 ### Setup Inicial
 
 ```bash
-# Instalar dependencias del frontend
+# 1. Instalar PostgreSQL localmente
+# Windows: https://www.postgresql.org/download/windows/
+# Mac: brew install postgresql
+# Linux: sudo apt install postgresql
+
+# 2. Crear base de datos
+createdb malulos_pos
+
+# 3. Configurar variables de entorno
+cd server
+cp .env.example .env
+# Editar .env y configurar DATABASE_URL con tus credenciales
+# Ejemplo: DATABASE_URL=postgresql://postgres:postgres@localhost:5432/malulos_pos
+
+# 4. Instalar dependencias del frontend
+cd ..
 npm install
 
-# Instalar dependencias del backend
+# 5. Instalar dependencias del backend
 cd server && npm install && cd ..
 
-# Inicializar base de datos SQLite (IMPORTANTE: ejecutar primero)
-npm run init-db
+# 6. Ejecutar seed de datos iniciales (IMPORTANTE: ejecutar primero)
+cd server && npm run seed && cd ..
 ```
 
 ### Desarrollo
@@ -53,8 +68,8 @@ npm run preview
 # Linting
 npm run lint
 
-# Re-inicializar base de datos (borra datos existentes)
-npm run init-db
+# Ejecutar seed de datos iniciales (solo si la BD está vacía)
+cd server && npm run seed
 ```
 
 ### Acceso desde Otros Dispositivos
@@ -87,8 +102,8 @@ El servidor de desarrollo está configurado para escuchar en todas las interface
 ### Backend
 - **Runtime**: Node.js 18+
 - **Framework**: Express.js
-- **Base de Datos**: SQLite (better-sqlite3) - persistencia centralizada en archivo
-- **ORM**: Queries SQL directo (sin ORM pesado)
+- **Base de Datos**: PostgreSQL (pg) - base de datos relacional robusta
+- **ORM**: Queries SQL directo con pg (sin ORM pesado)
 - **CORS**: Habilitado para múltiples dispositivos
 
 ### Arquitectura
@@ -101,8 +116,8 @@ El servidor de desarrollo está configurado para escuchar en todas las interface
                                                 │
                                                 ▼
                                         ┌──────────────┐
-                                        │   SQLite     │
-                                        │  malulos.db  │
+                                        │  PostgreSQL  │
+                                        │ malulos_pos  │
                                         └──────────────┘
 ```
 
@@ -149,11 +164,11 @@ Definido en `src/types/index.ts:186-221`:
 - **cashier**: Puede tomar pedidos, procesar pagos, gestionar caja
 - **waiter**: Solo puede tomar pedidos (no puede cobrar ni gestionar caja)
 
-### Base de Datos SQLite Centralizada
+### Base de Datos PostgreSQL
 
-**Ubicación**: `server/malulos.db`
+**Nombre de BD**: `malulos_pos` (configurable en `.env`)
 
-**Schema** (`server/src/config/initDb.js`):
+**Schema** (`server/src/config/database.js`):
 ```typescript
 Version 3:
 - categories: Categorías de productos (hamburguesas, bebidas, etc.)
@@ -167,7 +182,7 @@ Version 3:
 - cashMovements: Movimientos de efectivo (entradas/salidas)
 ```
 
-**Seed Data**: La base de datos se inicializa automáticamente con datos de ejemplo en el primer uso (ver `seedDatabase()` en `database.ts:51-173`).
+**Seed Data**: Ejecutar `npm run seed` desde el directorio `server/` para insertar datos de ejemplo (ver `server/src/scripts/seed.js`).
 
 **Usuarios por defecto**:
 - Admin: PIN `1234` (acceso total)
@@ -224,9 +239,10 @@ import type { User } from '@/types'
 ## Consideraciones Importantes
 
 ### Persistencia Centralizada
-- **Toda la data está en SQLite (Backend)** - No hay base de datos local en el navegador.
+- **Toda la data está en PostgreSQL (Backend)** - No hay base de datos local en el navegador.
 - El frontend consume la API REST de forma exclusiva.
 - Polling implementado en vistas críticas (Mesas, Cocina, Home) para sincronización.
+- PostgreSQL ofrece mejor rendimiento, concurrencia y escalabilidad que SQLite.
 
 ### Gestión de Caja Obligatoria
 - **Antes de tomar pedidos**, debe haber una sesión de caja abierta

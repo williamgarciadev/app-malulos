@@ -10,7 +10,8 @@ import {
     Banknote,
     BarChart3,
     Users,
-    LayoutGrid
+    LayoutGrid,
+    Send
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { ThemeToggle } from './ThemeToggle'
@@ -35,6 +36,7 @@ export function Layout({ children }: LayoutProps) {
         { path: '/orders', icon: <ClipboardList size={20} />, label: 'Pedidos', show: true },
         { path: '/kitchen', icon: <ChefHat size={20} />, label: 'Cocina', show: true },
         { path: '/customers', icon: <Users size={20} />, label: 'Clientes', show: true },
+        { path: '/telegram-orders', icon: <Send size={20} />, label: 'Telegram', show: hasPermission('canManageCash') },
         { path: '/cash', icon: <Banknote size={20} />, label: 'Caja', show: hasPermission('canManageCash') },
         { path: '/menu', icon: <Settings size={20} />, label: 'Menú', show: hasPermission('canManageMenu') },
         { path: '/manage-tables', icon: <LayoutGrid size={20} />, label: 'Gestión Mesas', show: hasPermission('canManageMenu') },
