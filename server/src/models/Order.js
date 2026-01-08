@@ -1,23 +1,50 @@
 import { pool } from '../config/database.js';
 
+const ORDER_SELECT_FIELDS = `
+    id,
+    orderNumber AS "orderNumber",
+    type,
+    tableId AS "tableId",
+    tableName AS "tableName",
+    customerId AS "customerId",
+    customerName AS "customerName",
+    customerPhone AS "customerPhone",
+    customerAddress AS "customerAddress",
+    items,
+    subtotal,
+    discount,
+    tax,
+    total,
+    status,
+    paymentStatus AS "paymentStatus",
+    paymentMethod AS "paymentMethod",
+    paidAmount AS "paidAmount",
+    notes,
+    origin,
+    createdAt AS "createdAt",
+    confirmedAt AS "confirmedAt",
+    readyAt AS "readyAt",
+    completedAt AS "completedAt"
+`;
+
 export class Order {
     static async getAll() {
-        const res = await pool.query('SELECT * FROM orders ORDER BY createdAt DESC');
+        const res = await pool.query(`SELECT ${ORDER_SELECT_FIELDS} FROM orders ORDER BY createdAt DESC`);
         return res.rows;
     }
 
     static async getById(id) {
-        const res = await pool.query('SELECT * FROM orders WHERE id = $1', [id]);
+        const res = await pool.query(`SELECT ${ORDER_SELECT_FIELDS} FROM orders WHERE id = $1`, [id]);
         return res.rows[0];
     }
 
     static async getByStatus(status) {
-        const res = await pool.query('SELECT * FROM orders WHERE status = $1 ORDER BY createdAt DESC', [status]);
+        const res = await pool.query(`SELECT ${ORDER_SELECT_FIELDS} FROM orders WHERE status = $1 ORDER BY createdAt DESC`, [status]);
         return res.rows;
     }
 
     static async getCompletedByDateRange(startDate, endDate) {
-        let query = "SELECT * FROM orders WHERE status = 'completed'";
+        let query = `SELECT ${ORDER_SELECT_FIELDS} FROM orders WHERE status = 'completed'`;
         const params = [];
         let i = 1;
 
@@ -40,7 +67,7 @@ export class Order {
 
     static async getActiveOrders() {
         const res = await pool.query(`
-            SELECT * FROM orders
+            SELECT ${ORDER_SELECT_FIELDS} FROM orders
             WHERE status IN ('pending', 'confirmed', 'preparing', 'ready')
             ORDER BY createdAt DESC
         `);
@@ -49,7 +76,7 @@ export class Order {
 
     static async getByTable(tableId) {
         const res = await pool.query(`
-            SELECT * FROM orders
+            SELECT ${ORDER_SELECT_FIELDS} FROM orders
             WHERE tableId = $1 AND status IN ('pending', 'confirmed', 'preparing', 'ready')
             ORDER BY createdAt DESC
             LIMIT 1
@@ -58,12 +85,13 @@ export class Order {
     }
 
     static async create(data) {
-        // Generar número de orden secuencial diario
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const countRes = await pool.query('SELECT COUNT(*) as count FROM orders WHERE createdAt >= $1', [today.toISOString()]);
-        const nextNumber = parseInt(countRes.rows[0].count) + 1;
+        // Generar número de orden secuencial basado en el máximo existente
+        const maxRes = await pool.query(`
+            SELECT MAX(CAST(SUBSTRING(orderNumber FROM 2) AS INTEGER)) as maxnum
+            FROM orders
+            WHERE orderNumber ~ '^#[0-9]+$'
+        `);
+        const nextNumber = (maxRes.rows[0].maxnum || 0) + 1;
         const orderNumber = `#${String(nextNumber).padStart(3, '0')}`;
 
         const res = await pool.query(`
@@ -72,7 +100,7 @@ export class Order {
                 customerPhone, customerAddress, items, subtotal, discount, tax, total,
                 status, paymentStatus, paymentMethod, paidAmount, notes, origin
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-            RETURNING *
+            RETURNING ${ORDER_SELECT_FIELDS}
         `, [
             orderNumber,
             data.type,
@@ -116,7 +144,7 @@ export class Order {
         });
 
         values.push(id);
-        const res = await pool.query(`UPDATE orders SET ${fields.join(', ')} WHERE id = $${i} RETURNING *`, values);
+        const res = await pool.query(`UPDATE orders SET ${fields.join(', ')} WHERE id = $${i} RETURNING ${ORDER_SELECT_FIELDS}`, values);
         return res.rows[0];
     }
 

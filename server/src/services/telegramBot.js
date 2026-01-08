@@ -1,4 +1,5 @@
 import { Telegraf, Markup } from 'telegraf';
+import { randomUUID } from 'crypto';
 import { Product } from '../models/Product.js';
 import { Category, Customer } from '../models/index.js';
 import { Order } from '../models/Order.js';
@@ -115,7 +116,18 @@ export const initTelegramBot = (token) => {
     bot.action(/^prod_(\d+)$/, async (ctx) => {
         const product = await Product.getById(ctx.match[1]);
         const session = getSession(ctx.chat.id);
-        session.draftItem = { productId: product.id, productName: product.name, quantity: 1, unitPrice: product.basePrice, totalPrice: product.basePrice, selectedModifiers: [], comboSelections: [], notes: '', status: 'pending' };
+        session.draftItem = {
+            id: randomUUID(),
+            productId: product.id,
+            productName: product.name,
+            quantity: 1,
+            unitPrice: product.basePrice,
+            totalPrice: product.basePrice,
+            selectedModifiers: [],
+            comboSelections: [],
+            notes: '',
+            status: 'pending'
+        };
         await ctx.answerCbQuery();
         await showProductConfig(ctx, session);
     });
