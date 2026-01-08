@@ -1,0 +1,570 @@
+.page {
+    padding: var(--space-xl);
+    min-height: 100vh;
+    animation: fadeIn var(--transition-base) forwards;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-2xl);
+    padding-bottom: var(--space-lg);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.headerInfo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.headerInfo h1 {
+    font-size: var(--font-size-2xl);
+    font-weight: 800;
+    margin-bottom: var(--space-xs);
+}
+
+.headerInfo p {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.refreshBtn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    color: var(--color-text);
+    font-weight: 600;
+    transition: all var(--transition-fast);
+}
+
+.refreshBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--color-primary);
+}
+
+.refreshBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.spinning {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Estado vacío */
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2xl);
+    text-align: center;
+    color: var(--color-text-muted);
+    min-height: 400px;
+}
+
+.emptyState svg {
+    opacity: 0.3;
+    margin-bottom: var(--space-lg);
+}
+
+.emptyState h2 {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    margin-bottom: var(--space-sm);
+    color: var(--color-text);
+}
+
+.emptyState p {
+    font-size: var(--font-size-md);
+}
+
+/* Grid de pedidos */
+.ordersGrid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.orderCard {
+    background: linear-gradient(135deg, rgba(0, 136, 204, 0.08) 0%, rgba(255, 107, 53, 0.08) 100%);
+    border: 2px solid rgba(0, 136, 204, 0.3);
+    border-radius: var(--radius-xl);
+    padding: var(--space-xl);
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(220px, 1.2fr) auto;
+    align-items: start;
+    gap: var(--space-xl);
+    transition: all var(--transition-fast);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.orderCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 136, 204, 0.3);
+    border-color: rgba(0, 136, 204, 0.5);
+}
+
+.orderCardCancelled {
+    opacity: 0.7;
+    border-color: rgba(255, 68, 68, 0.45);
+    background: linear-gradient(135deg, rgba(255, 68, 68, 0.08) 0%, rgba(255, 107, 53, 0.08) 100%);
+}
+
+.orderCardCancelled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.orderMain {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.orderHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.orderHeaderMeta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-xs);
+}
+
+.cancelledBadge {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255, 68, 68, 0.2);
+    color: var(--color-danger);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.paymentBadge {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(234, 88, 12, 0.12);
+    color: var(--color-primary);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.orderHeader h3 {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: var(--space-xs);
+}
+
+.orderTime {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+.orderTotal {
+    font-size: var(--font-size-2xl);
+    font-weight: 800;
+    color: var(--color-success);
+}
+
+/* Información del cliente */
+.customerInfo {
+    background: rgba(0, 0, 0, 0.2);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-lg);
+}
+
+.infoRow {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-xs) 0;
+    font-size: var(--font-size-sm);
+}
+
+.label {
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+/* Items del pedido */
+.orderItems {
+    margin-bottom: var(--space-lg);
+}
+
+.orderItems h4 {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    margin-bottom: var(--space-sm);
+}
+
+.orderItem {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    gap: var(--space-sm);
+    padding: var(--space-xs) 0;
+    font-size: var(--font-size-sm);
+}
+
+.itemQty {
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.itemName {
+    color: var(--color-text);
+}
+
+.itemPrice {
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.orderNotes {
+    background: rgba(255, 193, 7, 0.1);
+    border-left: 3px solid #ffc107;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-lg);
+    font-size: var(--font-size-sm);
+}
+
+/* Acciones */
+.orderActions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.orderActions button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    transition: all var(--transition-fast);
+}
+
+.orderActions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.confirmBtn {
+    background: rgba(0, 200, 81, 0.15);
+    color: var(--color-success);
+    border: 1px solid var(--color-success);
+}
+
+.confirmBtn:hover {
+    background: var(--color-success);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 200, 81, 0.3);
+}
+
+.contraBtn {
+    background: rgba(255, 193, 7, 0.15);
+    color: #ffc107;
+    border: 1px solid #ffc107;
+}
+
+.contraBtn:hover {
+    background: #ffc107;
+    color: #1a1a2e;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
+.cancelBtn {
+    background: rgba(255, 68, 68, 0.15);
+    color: var(--color-danger);
+    border: 1px solid var(--color-danger);
+}
+
+.cancelBtn:hover {
+    background: var(--color-danger);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
+}
+
+/* Modal de Confirmación de Pago */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.paymentModal {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-xl);
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow: auto;
+    box-shadow: var(--shadow-lg);
+    animation: slideUp 0.3s ease;
+}
+
+.cancelModal {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-xl);
+    width: 90%;
+    max-width: 460px;
+    max-height: 90vh;
+    overflow: auto;
+    box-shadow: var(--shadow-lg);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-xl);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modalHeader h2 {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+}
+
+.closeModalBtn {
+    background: transparent;
+    color: var(--color-text-muted);
+    padding: var(--space-xs);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.closeModalBtn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text);
+}
+
+.modalBody {
+    padding: var(--space-xl);
+}
+
+.cancelSummary {
+    background: rgba(255, 68, 68, 0.08);
+    border: 1px solid rgba(255, 68, 68, 0.2);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    text-align: center;
+}
+
+.cancelHint {
+    margin-top: var(--space-xs);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.cancelActions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-lg);
+}
+
+.cancelGhostBtn,
+.cancelConfirmBtn {
+    flex: 1;
+    padding: var(--space-md);
+    border-radius: var(--radius-lg);
+    font-weight: 700;
+    font-size: var(--font-size-sm);
+    transition: all var(--transition-fast);
+}
+
+.cancelGhostBtn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--color-text);
+}
+
+.cancelGhostBtn:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.cancelConfirmBtn {
+    background: rgba(255, 68, 68, 0.15);
+    color: var(--color-danger);
+    border: 1px solid var(--color-danger);
+}
+
+.cancelConfirmBtn:hover {
+    background: var(--color-danger);
+    color: white;
+}
+
+.orderSummary {
+    text-align: center;
+    padding: var(--space-lg);
+    background: rgba(255, 107, 53, 0.05);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.orderSummary h3 {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: var(--space-xs);
+}
+
+.orderSummary p {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-md);
+}
+
+.totalAmount {
+    font-size: var(--font-size-2xl);
+    font-weight: 800;
+    color: var(--color-success);
+}
+
+.paymentMethodSelector {
+    margin-bottom: var(--space-xl);
+}
+
+.paymentMethodSelector h3 {
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    margin-bottom: var(--space-md);
+}
+
+.methodButtons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-sm);
+}
+
+.methodBtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+    background: rgba(255, 255, 255, 0.03);
+    border: 2px solid transparent;
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.methodBtn span {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.methodBtn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.methodActive {
+    border-color: var(--color-primary);
+    background: rgba(255, 107, 53, 0.15);
+}
+
+.methodNequi.methodActive {
+    border-color: #ff0083;
+    background: rgba(255, 0, 131, 0.15);
+    color: #ff0083;
+}
+
+.methodDaviplata.methodActive {
+    border-color: #e30613;
+    background: rgba(227, 6, 19, 0.15);
+    color: #e30613;
+}
+
+.confirmPaymentBtn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: linear-gradient(135deg, var(--color-success) 0%, #00a041 100%);
+    color: white;
+    border-radius: var(--radius-lg);
+    font-weight: 700;
+    font-size: var(--font-size-md);
+    box-shadow: 0 4px 15px rgba(0, 200, 81, 0.3);
+    transition: all var(--transition-fast);
+}
+
+.confirmPaymentBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 200, 81, 0.4);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .orderCard {
+        grid-template-columns: 1fr;
+    }
+
+    .orderActions {
+        flex-direction: column;
+    }
+
+    .methodButtons {
+        grid-template-columns: 1fr;
+    }
+}

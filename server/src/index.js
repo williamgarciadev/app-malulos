@@ -8,7 +8,7 @@ import { Category, RestaurantTable, User, CashSession, Config } from './models/i
 import { Product } from './models/Product.js';
 import { Order } from './models/Order.js';
 import { Customer } from './models/Customer.js';
-import { initTelegramBot } from './services/telegramBot.js';
+import { initTelegramBot, notifyTelegramCustomer } from './services/telegramBot.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -100,6 +100,16 @@ app.get('/api/tables', async (req, res) => {
     }
 });
 
+app.get('/api/tables/:id', async (req, res) => {
+    try {
+        const table = await RestaurantTable.getById(req.params.id);
+        if (!table) return res.status(404).json({ error: 'Mesa no encontrada' });
+        res.json(table);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.put('/api/tables/:id', async (req, res) => {
     try {
         const table = await RestaurantTable.update(req.params.id, req.body);
@@ -138,7 +148,60 @@ app.post('/api/orders', async (req, res) => {
 
 app.put('/api/orders/:id', async (req, res) => {
     try {
+        const existingOrder = await Order.getById(req.params.id);
         const order = await Order.update(req.params.id, req.body);
+
+        if (existingOrder && order && order.origin === 'telegram' && existingOrder.status !== order.status) {
+            const customer = order.customerId ? await Customer.getById(order.customerId) : null;
+            if (customer?.telegramId) {
+                const statusMessages = {
+                    confirmed: `✅ Tu pago fue confirmado para el pedido ${order.orderNumber}.`,
+                    preparing: `👨‍🍳 Tu pedido ${order.orderNumber} está en preparación.`,
+                    ready: `📦 Tu pedido ${order.orderNumber} esta listo para salir.`,
+                    on_the_way: `🛵 Tu pedido ${order.orderNumber} va en camino.`,
+                    delivered: `✅ Tu pedido ${order.orderNumber} fue entregado.`,
+                    cancelled: `❌ Tu pedido ${order.orderNumber} fue cancelado.`
+                };
+                const message = statusMessages[order.status];
+                if (message) {
+                    await notifyTelegramCustomer(customer.telegramId, message);
+                }
+            }
+        }
+        res.json(order);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/orders/:id/status', async (req, res) => {
+    try {
+        const { status } = req.body;
+        if (!status) {
+            return res.status(400).json({ error: 'Status es requerido' });
+        }
+
+        const existingOrder = await Order.getById(req.params.id);
+        const order = await Order.update(req.params.id, { status });
+
+        if (existingOrder && order && order.origin === 'telegram' && existingOrder.status !== order.status) {
+            const customer = order.customerId ? await Customer.getById(order.customerId) : null;
+            if (customer?.telegramId) {
+                const statusMessages = {
+                    confirmed: `✅ Tu pago fue confirmado para el pedido ${order.orderNumber}.`,
+                    preparing: `👨‍🍳 Tu pedido ${order.orderNumber} está en preparación.`,
+                    ready: `📦 Tu pedido ${order.orderNumber} esta listo para salir.`,
+                    on_the_way: `🛵 Tu pedido ${order.orderNumber} va en camino.`,
+                    delivered: `✅ Tu pedido ${order.orderNumber} fue entregado.`,
+                    cancelled: `❌ Tu pedido ${order.orderNumber} fue cancelado.`
+                };
+                const message = statusMessages[order.status];
+                if (message) {
+                    await notifyTelegramCustomer(customer.telegramId, message);
+                }
+            }
+        }
+
         res.json(order);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -235,6 +298,15 @@ app.post('/api/customers', async (req, res) => {
     try {
         const customer = await Customer.create(req.body);
         res.status(201).json(customer);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/customers/:id', async (req, res) => {
+    try {
+        const customer = await Customer.update(req.params.id, req.body);
+        res.json(customer);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

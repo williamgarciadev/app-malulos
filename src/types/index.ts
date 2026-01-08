@@ -101,8 +101,8 @@ export interface Customer {
 
 // ---------- Pedidos ----------
 export type OrderType = 'dine-in' | 'takeout' | 'delivery'
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'completed' | 'cancelled'
-export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'mixed'
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'on_the_way' | 'delivered' | 'completed' | 'cancelled'
+export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'nequi' | 'daviplata' | 'mixed'
 export type PaymentStatus = 'pending' | 'partial' | 'paid'
 
 export interface OrderItem {
@@ -236,6 +236,9 @@ export interface CashSession {
     difference?: number
     cashSales: number
     cardSales: number
+    transferSales: number
+    nequiSales: number
+    davipplataSales: number
     totalSales: number
     ordersCount: number
     notes?: string

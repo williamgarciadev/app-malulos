@@ -7,16 +7,26 @@ if (!connectionString) {
     console.error('❌ ERROR: La variable de entorno DATABASE_URL es obligatoria.');
 }
 
-export const pool = new Pool({
-    connectionString,
-    ssl: {
+// Detectar si es desarrollo local (localhost) o producción
+const isLocalhost = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+
+// Configuración del pool
+const poolConfig = {
+    connectionString
+};
+
+// SSL solo en producción (servicios cloud como Render, Heroku, etc.)
+if (!isLocalhost) {
+    poolConfig.ssl = {
         rejectUnauthorized: false
-    }
-});
+    };
+}
+
+export const pool = new Pool(poolConfig);
 
 export const query = (text, params) => pool.query(text, params);
 
-console.log('🐘 Conector PostgreSQL preparado.');
+console.log(`🐘 Conector PostgreSQL preparado (${isLocalhost ? 'desarrollo local' : 'producción con SSL'}).`);
 
 export const initSchema = async () => {
     const tables = [
@@ -76,9 +86,9 @@ export const initSchema = async () => {
             discount REAL NOT NULL DEFAULT 0,
             tax REAL NOT NULL DEFAULT 0,
             total REAL NOT NULL,
-            status TEXT NOT NULL CHECK(status IN ('pending', 'confirmed', 'preparing', 'ready', 'delivered', 'completed', 'cancelled')),
+            status TEXT NOT NULL CHECK(status IN ('pending', 'confirmed', 'preparing', 'ready', 'on_the_way', 'delivered', 'completed', 'cancelled')),
             paymentStatus TEXT NOT NULL CHECK(paymentStatus IN ('pending', 'partial', 'paid')),
-            paymentMethod TEXT CHECK(paymentMethod IN ('cash', 'card', 'transfer', 'mixed')),
+            paymentMethod TEXT CHECK(paymentMethod IN ('cash', 'card', 'transfer', 'nequi', 'daviplata', 'mixed')),
             paidAmount REAL NOT NULL DEFAULT 0,
             notes TEXT,
             origin TEXT DEFAULT 'pos',
@@ -116,6 +126,9 @@ export const initSchema = async () => {
             difference REAL,
             cashSales REAL NOT NULL DEFAULT 0,
             cardSales REAL NOT NULL DEFAULT 0,
+            transferSales REAL NOT NULL DEFAULT 0,
+            nequiSales REAL NOT NULL DEFAULT 0,
+            davipplataSales REAL NOT NULL DEFAULT 0,
             totalSales REAL NOT NULL DEFAULT 0,
             ordersCount INTEGER NOT NULL DEFAULT 0,
             notes TEXT,
@@ -148,6 +161,59 @@ export const initSchema = async () => {
         console.log('⏳ Sincronizando índices...');
         for (const sql of indices) {
             await query(sql);
+        }
+
+        console.log('⏳ Ejecutando migraciones de datos...');
+
+        // Migración 1: Agregar columnas para métodos de pago colombianos
+        try {
+            const columnsCheck = await query(`
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name='cashsessions' AND column_name IN ('transfersales', 'nequisales', 'davipplatasales')
+            `);
+
+            if (columnsCheck.rows.length < 3) {
+                await query(`
+                    ALTER TABLE cashSessions
+                    ADD COLUMN IF NOT EXISTS transferSales REAL NOT NULL DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS nequiSales REAL NOT NULL DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS davipplataSales REAL NOT NULL DEFAULT 0
+                `);
+                console.log('🔄 Migración 1: Columnas de métodos de pago agregadas.');
+            }
+        } catch (err) {
+            console.log('ℹ️  Columnas de métodos de pago ya existen.');
+        }
+
+        // Migración 2: Actualizar constraint de paymentMethod en orders
+        try {
+            await query(`
+                ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_paymentmethod_check
+            `);
+            await query(`
+                ALTER TABLE orders
+                ADD CONSTRAINT orders_paymentmethod_check
+                CHECK (paymentMethod IN ('cash', 'card', 'transfer', 'nequi', 'daviplata', 'mixed'))
+            `);
+            console.log('🔄 Migración 2: Constraint de paymentMethod actualizado.');
+        } catch (err) {
+            console.log('ℹ️  Constraint de paymentMethod ya está actualizado.');
+        }
+
+        // Migración 3: Actualizar constraint de status en orders
+        try {
+            await query(`
+                ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check
+            `);
+            await query(`
+                ALTER TABLE orders
+                ADD CONSTRAINT orders_status_check
+                CHECK (status IN ('pending', 'confirmed', 'preparing', 'ready', 'on_the_way', 'delivered', 'completed', 'cancelled'))
+            `);
+            console.log('🔄 Migración 3: Constraint de status actualizado.');
+        } catch (err) {
+            console.log('ℹ️  Constraint de status ya está actualizado.');
         }
 
         console.log('✅ Esquema base verificado.');

@@ -4,10 +4,12 @@ import { Category, Customer } from '../models/index.js';
 import { Order } from '../models/Order.js';
 
 const userSessions = new Map();
+let botInstance = null;
 
 export const initTelegramBot = (token) => {
     if (!token) return null;
     const bot = new Telegraf(token);
+    botInstance = bot;
 
     const getSession = (chatId) => {
         if (!userSessions.has(chatId)) {
@@ -178,18 +180,100 @@ export const initTelegramBot = (token) => {
             session.state = 'register_name';
             return ctx.reply('Por favor dinos tu nombre completo para registrarte:');
         }
+
+        // Mostrar resumen y preguntar método de pago
+        const total = session.items.reduce((sum, i) => sum + i.totalPrice, 0);
+        let summary = '*Resumen de tu Pedido:*\n\n';
+        session.items.forEach((item, i) => {
+            summary += `${i + 1}. ${item.productName} - $${item.totalPrice.toLocaleString()}\n`;
+        });
+        summary += `\n*TOTAL: $${total.toLocaleString()}*\n\n¿Cómo vas a pagar?`;
+
+        const paymentButtons = [
+            [Markup.button.callback('📱 Nequi', 'payment_nequi')],
+            [Markup.button.callback('💰 DaviPlata', 'payment_daviplata')],
+            [Markup.button.callback('🏦 Transferencia Bancaria', 'payment_transfer')],
+            [Markup.button.callback('💵 Contraentrega (Efectivo)', 'payment_contraentrega')]
+        ];
+
+        session.state = 'awaiting_payment_method';
+        await ctx.reply(summary, {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard(paymentButtons)
+        });
+    });
+
+    // Manejar selección de método de pago
+    bot.action(/^payment_(.+)$/, async (ctx) => {
+        const session = getSession(ctx.chat.id);
+        if (session.state !== 'awaiting_payment_method') return ctx.answerCbQuery();
+
+        const paymentMethod = ctx.match[1];
+
         try {
             const total = session.items.reduce((sum, i) => sum + i.totalPrice, 0);
-            const orderData = { type: 'takeout', customerId: session.customer.id, customerName: session.customer.name, customerPhone: session.customer.phone, customerAddress: session.customer.address, items: session.items, subtotal: total, total: total, status: 'pending', paymentStatus: 'pending', origin: 'telegram', notes: `Pedido por @${ctx.from.username || 'user'}` };
+            let orderNotes = `Pedido por @${ctx.from.username || 'user'}`;
+
+            // Crear orden según el método de pago
+            const orderData = {
+                type: 'delivery',
+                customerId: session.customer.id,
+                customerName: session.customer.name,
+                customerPhone: session.customer.phone,
+                customerAddress: session.customer.address,
+                items: session.items,
+                subtotal: total,
+                total: total,
+                status: 'pending',
+                paymentStatus: 'pending',
+                paymentMethod: paymentMethod === 'contraentrega' ? 'cash' : paymentMethod,
+                origin: 'telegram',
+                notes: orderNotes
+            };
+
             const newOrder = await Order.create(orderData);
             session.items = [];
-            ctx.reply(`¡Gracias *${session.customer.name}*! 🎉\nOrden: *${newOrder.orderNumber}*`, { parse_mode: 'Markdown' });
+            session.state = 'idle';
+
+            let responseMsg = `¡Gracias *${session.customer.name}*! 🎉\n\nOrden: *${newOrder.orderNumber}*\nTotal: *$${total.toLocaleString()}*\n\n`;
+
+            if (paymentMethod === 'contraentrega') {
+                responseMsg += `✅ *Pago: Contraentrega*\nPagarás en efectivo cuando recibas tu pedido. 💵\n\nEstamos preparando tu orden. 👨‍🍳`;
+            } else {
+                const methodNames = {
+                    nequi: 'Nequi 📱',
+                    daviplata: 'DaviPlata 💰',
+                    transfer: 'Transferencia Bancaria 🏦'
+                };
+
+                responseMsg += `*Método de Pago:* ${methodNames[paymentMethod]}\n\n`;
+                responseMsg += `📸 *Por favor envía el comprobante de pago* al administrador para confirmar tu pedido.\n\n`;
+                responseMsg += `Una vez confirmado el pago, comenzaremos a preparar tu orden. 👨‍🍳`;
+            }
+
+            await ctx.answerCbQuery('✅ Pedido creado');
+            await ctx.editMessageText(responseMsg, { parse_mode: 'Markdown' });
+
         } catch (error) {
-            ctx.reply('Error al procesar pedido.');
+            console.error('Error creating order:', error);
+            await ctx.answerCbQuery('❌ Error');
+            await ctx.reply('Error al procesar pedido. Por favor intenta de nuevo.');
+            session.state = 'idle';
         }
     });
 
     bot.launch();
     console.log('🤖 Telegram Bot sincronizado con PostgreSQL.');
     return bot;
+};
+
+export const notifyTelegramCustomer = async (telegramId, message) => {
+    if (!botInstance || !telegramId) return false;
+    try {
+        await botInstance.telegram.sendMessage(String(telegramId), message, { parse_mode: 'Markdown' });
+        return true;
+    } catch (error) {
+        console.error('Error sending Telegram notification:', error);
+        return false;
+    }
 };

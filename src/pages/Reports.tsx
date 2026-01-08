@@ -39,18 +39,25 @@ export function Reports() {
         if (completedOrders.length === 0) return
 
         // 1. Datos de Pedidos
-        const ordersData = completedOrders.map(order => ({
-            'Pedido': `#${order.orderNumber}`,
-            'Fecha': new Date(order.completedAt!).toLocaleDateString(),
-            'Hora': new Date(order.completedAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            'Tipo': order.type === 'dine-in' ? 'Salón' : order.type === 'takeout' ? 'Para llevar' : 'Domicilio',
-            'Mesa': order.tableName || order.tableId || '-',
-            'Método Pago': order.paymentMethod === 'cash' ? 'Efectivo' : order.paymentMethod === 'card' ? 'Tarjeta' : order.paymentMethod === 'transfer' ? 'Transferencia' : 'Mixto',
-            'Subtotal': order.subtotal,
-            'Descuento': order.discount,
-            'Impuestos': order.tax,
-            'Total': order.total
-        }))
+        const ordersData = completedOrders.map(order => {
+            const orderTimestamp = new Date(order.completedAt || order.confirmedAt || order.createdAt)
+            return ({
+                'Pedido': `#${order.orderNumber}`,
+                'Fecha': orderTimestamp.toLocaleDateString(),
+                'Hora': orderTimestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                'Tipo': order.type === 'dine-in' ? 'Sal¢n' : order.type === 'takeout' ? 'Para llevar' : 'Domicilio',
+                'Mesa': order.tableName || order.tableId || '-',
+                'M‚todo Pago': order.paymentMethod === 'cash' ? 'Efectivo' :
+                               order.paymentMethod === 'card' ? 'Tarjeta' :
+                               order.paymentMethod === 'transfer' ? 'Transferencia' :
+                               order.paymentMethod === 'nequi' ? 'Nequi' :
+                               order.paymentMethod === 'daviplata' ? 'DaviPlata' : 'Mixto',
+                'Subtotal': order.subtotal,
+                'Descuento': order.discount,
+                'Impuestos': order.tax,
+                'Total': order.total
+            })
+        })
 
         // 2. Datos de Productos (Resumen)
         const productsSummary: Record<string, any> = {}
@@ -101,26 +108,8 @@ export function Reports() {
         else setIsLoading(true);
 
         try {
-            const now = new Date()
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-            let startDate: string | undefined
-
-            if (period === 'today') {
-                const yesterday = new Date(today)
-                yesterday.setDate(yesterday.getDate() - 1)
-                startDate = yesterday.toISOString()
-            } else if (period === 'week') {
-                const weekAgo = new Date(today)
-                weekAgo.setDate(weekAgo.getDate() - 7)
-                startDate = weekAgo.toISOString()
-            } else if (period === 'month') {
-                const monthAgo = new Date(today)
-                monthAgo.setMonth(monthAgo.getMonth() - 1)
-                startDate = monthAgo.toISOString()
-            }
-
             const [ordersResponse, productsResponse, categoriesResponse] = await Promise.all([
-                ordersApi.getAll({ status: 'completed', startDate }),
+                ordersApi.getAll(),
                 productsApi.getAll(),
                 categoriesApi.getAll()
             ])
@@ -141,29 +130,35 @@ export function Reports() {
     }, [loadData])
 
     // Memorizar órdenes filtradas por el período actual
+    const paidOrders = useMemo(() => {
+        return allCompletedOrders.filter(order => order.paymentStatus === 'paid')
+    }, [allCompletedOrders])
+
     const completedOrders = useMemo(() => {
         const now = new Date()
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const getOrderTimestamp = (order: Order) =>
+            new Date(order.completedAt || order.confirmedAt || order.createdAt)
 
         switch (period) {
             case 'today':
-                return allCompletedOrders.filter(order => {
-                    const orderDate = new Date(order.completedAt!)
+                return paidOrders.filter(order => {
+                    const orderDate = getOrderTimestamp(order)
                     return orderDate >= today
                 })
             case 'week':
                 const weekAgo = new Date(today)
                 weekAgo.setDate(weekAgo.getDate() - 7)
-                return allCompletedOrders.filter(order => new Date(order.completedAt!) >= weekAgo)
+                return paidOrders.filter(order => getOrderTimestamp(order) >= weekAgo)
             case 'month':
                 const monthAgo = new Date(today)
                 monthAgo.setMonth(monthAgo.getMonth() - 1)
-                return allCompletedOrders.filter(order => new Date(order.completedAt!) >= monthAgo)
+                return paidOrders.filter(order => getOrderTimestamp(order) >= monthAgo)
             case 'all':
             default:
-                return allCompletedOrders
+                return paidOrders
         }
-    }, [allCompletedOrders, period])
+    }, [paidOrders, period])
 
     // Métricas generales
     const totalSales = completedOrders.reduce((acc, curr) => acc + curr.total, 0)
@@ -180,9 +175,9 @@ export function Reports() {
         yesterday.setDate(yesterday.getDate() - 1)
 
         const todaySales = completedOrders.reduce((acc, curr) => acc + curr.total, 0)
-        const yesterdaySales = allCompletedOrders
+        const yesterdaySales = paidOrders
             .filter(order => {
-                const orderDate = new Date(order.completedAt!)
+                const orderDate = new Date(order.completedAt || order.confirmedAt || order.createdAt)
                 return orderDate >= yesterday && orderDate < today
             })
             .reduce((acc, curr) => acc + curr.total, 0)
@@ -194,12 +189,12 @@ export function Reports() {
             percentChange,
             isPositive: percentChange >= 0
         }
-    }, [allCompletedOrders, completedOrders, period])
+    }, [completedOrders, paidOrders, period])
 
     // Datos para Ventas por Hora
     const hourlyData = useMemo(() => {
         const hourlySales = completedOrders.reduce((acc: Record<string, number>, order) => {
-            const hour = new Date(order.completedAt!).getHours()
+            const hour = new Date(order.completedAt || order.confirmedAt || order.createdAt).getHours()
             const hourLabel = `${hour}:00`
             acc[hourLabel] = (acc[hourLabel] || 0) + order.total
             return acc
@@ -267,6 +262,8 @@ export function Reports() {
             cash: 'Efectivo',
             card: 'Tarjeta',
             transfer: 'Transferencia',
+            nequi: 'Nequi',
+            daviplata: 'DaviPlata',
             mixed: 'Mixto'
         }
 
@@ -282,6 +279,13 @@ export function Reports() {
             currency: 'COP',
             minimumFractionDigits: 0
         }).format(price)
+    }
+
+    const getTableLabel = (order: Order) => {
+        if (order.origin === 'telegram') return '-'
+        if (order.tableName) return order.tableName
+        if (order.tableId) return `Mesa ${order.tableId}`
+        return '-'
     }
 
     const COLORS = ['#FF6B35', '#4ECDC4', '#FFD166', '#06D6A0', '#118AB2', '#EF476F']
@@ -397,12 +401,32 @@ export function Reports() {
                     <div className={styles.chartContainer}>
                         <ResponsiveContainer width="100%" height={300}>
                             <LineChart data={hourlyData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                <XAxis dataKey="hour" stroke="#888" fontSize={12} />
-                                <YAxis stroke="#888" fontSize={12} tickFormatter={(v) => `$${v / 1000}k`} />
+                                <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    vertical={false}
+                                    stroke="var(--color-border)"
+                                    strokeOpacity={0.4}
+                                />
+                                <XAxis
+                                    dataKey="hour"
+                                    stroke="var(--color-border)"
+                                    tick={{ fill: 'var(--color-text-muted)' }}
+                                    fontSize={12}
+                                />
+                                <YAxis
+                                    stroke="var(--color-border)"
+                                    tick={{ fill: 'var(--color-text-muted)' }}
+                                    fontSize={12}
+                                    tickFormatter={(v) => `$${v / 1000}k`}
+                                />
                                 <Tooltip
-                                    contentStyle={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: '8px' }}
-                                    itemStyle={{ color: '#FF6B35' }}
+                                    contentStyle={{
+                                        background: 'var(--color-bg-card)',
+                                        border: '1px solid var(--color-border)',
+                                        borderRadius: '8px',
+                                        color: 'var(--color-text)'
+                                    }}
+                                    itemStyle={{ color: 'var(--color-text)' }}
                                     formatter={(value: any) => [formatPrice(value), 'Ventas']}
                                 />
                                 <Line
@@ -424,11 +448,29 @@ export function Reports() {
                     <div className={styles.chartContainer}>
                         <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={topProductsData} layout="vertical">
-                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.05)" />
+                                <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    horizontal={false}
+                                    stroke="var(--color-border)"
+                                    strokeOpacity={0.4}
+                                />
                                 <XAxis type="number" hide />
-                                <YAxis dataKey="name" type="category" stroke="#888" fontSize={10} width={100} />
+                                <YAxis
+                                    dataKey="name"
+                                    type="category"
+                                    stroke="var(--color-border)"
+                                    tick={{ fill: 'var(--color-text-muted)' }}
+                                    fontSize={10}
+                                    width={100}
+                                />
                                 <Tooltip
-                                    contentStyle={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: '8px' }}
+                                    contentStyle={{
+                                        background: 'var(--color-bg-card)',
+                                        border: '1px solid var(--color-border)',
+                                        borderRadius: '8px',
+                                        color: 'var(--color-text)'
+                                    }}
+                                    itemStyle={{ color: 'var(--color-text)' }}
                                     formatter={(value: any) => [value, 'Unidades']}
                                 />
                                 <Bar dataKey="qty" radius={[0, 4, 4, 0]}>
@@ -461,10 +503,18 @@ export function Reports() {
                                     ))}
                                 </Pie>
                                 <Tooltip
-                                    contentStyle={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: '8px' }}
+                                    contentStyle={{
+                                        background: 'var(--color-bg-card)',
+                                        border: '1px solid var(--color-border)',
+                                        borderRadius: '8px',
+                                        color: 'var(--color-text)'
+                                    }}
+                                    itemStyle={{ color: 'var(--color-text)' }}
                                     formatter={(value: any) => [formatPrice(value), 'Total']}
                                 />
-                                <Legend />
+                                <Legend formatter={(value) => (
+                                    <span style={{ color: 'var(--color-text)' }}>{value}</span>
+                                )} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
@@ -490,10 +540,18 @@ export function Reports() {
                                     ))}
                                 </Pie>
                                 <Tooltip
-                                    contentStyle={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: '8px' }}
+                                    contentStyle={{
+                                        background: 'var(--color-bg-card)',
+                                        border: '1px solid var(--color-border)',
+                                        borderRadius: '8px',
+                                        color: 'var(--color-text)'
+                                    }}
+                                    itemStyle={{ color: 'var(--color-text)' }}
                                     formatter={(value: any) => [formatPrice(value), 'Total']}
                                 />
-                                <Legend />
+                                <Legend formatter={(value) => (
+                                    <span style={{ color: 'var(--color-text)' }}>{value}</span>
+                                )} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
@@ -556,19 +614,23 @@ export function Reports() {
 
                                                 </td>
 
-                                                <td>{new Date(order.completedAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                                                <td>{new Date(order.completedAt || order.confirmedAt || order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
 
-                                                <td>{order.tableName || `Mesa ${order.tableId}`}</td>
+                                                <td>{getTableLabel(order)}</td>
 
                                                 <td>
 
                                                     <span className={`${styles.badge} ${styles[order.paymentMethod || 'cash']}`}>
 
-                                                        {order.paymentMethod === 'cash' ? 'Efectivo' : 
+                                                        {order.paymentMethod === 'cash' ? 'Efectivo' :
 
                                                          order.paymentMethod === 'card' ? 'Tarjeta' :
 
-                                                         order.paymentMethod === 'transfer' ? 'Transferencia' : 'Mixto'}
+                                                         order.paymentMethod === 'transfer' ? 'Transferencia' :
+
+                                                         order.paymentMethod === 'nequi' ? 'Nequi' :
+
+                                                         order.paymentMethod === 'daviplata' ? 'DaviPlata' : 'Mixto'}
 
                                                     </span>
 
@@ -684,15 +746,15 @@ export function Reports() {
 
                                                                 <div className={styles.dateTime}>
 
-                                                                    <span>{new Date(order.completedAt!).toLocaleDateString()}</span>
+                                                                    <span>{new Date(order.completedAt || order.confirmedAt || order.createdAt).toLocaleDateString()}</span>
 
-                                                                    <span className={styles.timeText}>{new Date(order.completedAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                                    <span className={styles.timeText}>{new Date(order.completedAt || order.confirmedAt || order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
 
                                                                 </div>
 
                                                             </td>
 
-                                                            <td>{order.tableName || (order.tableId ? `Mesa ${order.tableId}` : '-')}</td>
+                                                            <td>{getTableLabel(order)}</td>
 
                                                             <td>
 
@@ -710,11 +772,15 @@ export function Reports() {
 
                                                                 <span className={`${styles.badge} ${styles[order.paymentMethod || 'cash']}`}>
 
-                                                                    {order.paymentMethod === 'cash' ? 'Efectivo' : 
+                                                                    {order.paymentMethod === 'cash' ? 'Efectivo' :
 
                                                                      order.paymentMethod === 'card' ? 'Tarjeta' :
 
-                                                                     order.paymentMethod === 'transfer' ? 'Transferencia' : 'Mixto'}
+                                                                     order.paymentMethod === 'transfer' ? 'Transferencia' :
+
+                                                                     order.paymentMethod === 'nequi' ? 'Nequi' :
+
+                                                                     order.paymentMethod === 'daviplata' ? 'DaviPlata' : 'Mixto'}
 
                                                                 </span>
 
@@ -747,3 +813,5 @@ export function Reports() {
             }
 
             
+
+

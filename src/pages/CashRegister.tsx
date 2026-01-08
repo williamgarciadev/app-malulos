@@ -107,12 +107,24 @@ export function CashRegister() {
                     <span className={styles.statValue}>{formatPrice(currentSession.openingAmount)}</span>
                 </div>
                 <div className={styles.statCard}>
-                    <span className={styles.statLabel}>Ventas Efectivo</span>
-                    <span className={styles.statValue}>{formatPrice(currentSession.cashSales)}</span>
+                    <span className={styles.statLabel}>Efectivo</span>
+                    <span className={styles.statValue}>{formatPrice(currentSession.cashSales || 0)}</span>
                 </div>
                 <div className={styles.statCard}>
-                    <span className={styles.statLabel}>Ventas Tarjeta</span>
-                    <span className={styles.statValue}>{formatPrice(currentSession.cardSales)}</span>
+                    <span className={styles.statLabel}>Tarjeta</span>
+                    <span className={styles.statValue}>{formatPrice(currentSession.cardSales || 0)}</span>
+                </div>
+                <div className={styles.statCard}>
+                    <span className={styles.statLabel}>Transferencia</span>
+                    <span className={styles.statValue}>{formatPrice(currentSession.transferSales || 0)}</span>
+                </div>
+                <div className={`${styles.statCard} ${styles.statNequi}`}>
+                    <span className={styles.statLabel}>Nequi</span>
+                    <span className={styles.statValue}>{formatPrice(currentSession.nequiSales || 0)}</span>
+                </div>
+                <div className={`${styles.statCard} ${styles.statDaviplata}`}>
+                    <span className={styles.statLabel}>DaviPlata</span>
+                    <span className={styles.statValue}>{formatPrice(currentSession.davipplataSales || 0)}</span>
                 </div>
                 <div className={`${styles.statCard} ${styles.statPrimary}`}>
                     <span className={styles.statLabel}>Total Esperado en Caja</span>
@@ -161,7 +173,7 @@ export function CashRegister() {
                 <section className={styles.section}>
                     <h3><CheckCircle2 size={18} /> Cierre de Turno</h3>
                     <div className={styles.closeForm}>
-                        <p>Cuenta el efectivo real en caja e ingrésalo:</p>
+                        <p>Cuenta el efectivo real en caja e ingresalo:</p>
                         <div className={styles.inputWrapper}>
                             <span className={styles.currency}>$</span>
                             <input

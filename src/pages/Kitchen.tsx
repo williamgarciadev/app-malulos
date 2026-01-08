@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchApi } from '@/services/api'
 import { usePolling } from '@/hooks/usePolling'
+import { useToast } from '@/context/ToastContext'
 import { generateKitchenTicket } from '@/services/ticketService'
 import {
     Clock,
@@ -17,9 +18,11 @@ import type { Order } from '@/types'
 import styles from './Kitchen.module.css'
 
 export function Kitchen() {
+    const { addToast } = useToast()
     const audioRef = useRef<HTMLAudioElement | null>(null)
     const prevOrdersCount = useRef(0)
-    
+    const prevOrderIds = useRef<Set<number>>(new Set())
+
     const [orders, setOrders] = useState<Order[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
@@ -27,9 +30,14 @@ export function Kitchen() {
         try {
             const data = await fetchApi<Order[]>('/orders?active=true')
             // Filtrar solo los que interesan a cocina (pendientes y preparando)
-            const kitchenOrders = data.filter(o => 
-                ['pending', 'confirmed', 'preparing'].includes(o.status)
-            ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+            // Los pedidos Telegram no entran hasta que el pago este confirmado.
+            const kitchenOrders = data.filter(o => {
+                if (!['pending', 'confirmed', 'preparing'].includes(o.status)) return false
+                if (o.origin !== 'telegram') return true
+
+                const isCashOnDelivery = (o.notes || '').includes('[CONTRAENTREGA')
+                return o.paymentStatus === 'paid' || isCashOnDelivery
+            }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
             
             setOrders(kitchenOrders)
             setIsLoading(false)
@@ -46,10 +54,20 @@ export function Kitchen() {
     // Polling cada 10 segundos
     usePolling(loadOrders, 10000)
 
-    // Sonido de notificación para nuevos pedidos
+    // Notificación mejorada para nuevos pedidos (especialmente Telegram)
     useEffect(() => {
-        if (orders.length > prevOrdersCount.current && prevOrdersCount.current !== 0) {
-            // Reproducir sonido solo si hay MÁS pedidos que antes (y no es la primera carga)
+        if (prevOrderIds.current.size === 0) {
+            // Primera carga, solo guardar IDs
+            prevOrderIds.current = new Set(orders.map(o => o.id!))
+            prevOrdersCount.current = orders.length
+            return
+        }
+
+        // Detectar pedidos realmente nuevos comparando IDs
+        const newOrders = orders.filter(order => !prevOrderIds.current.has(order.id!))
+
+        if (newOrders.length > 0) {
+            // Reproducir sonido
             try {
                 if (audioRef.current) {
                     audioRef.current.play()
@@ -57,15 +75,36 @@ export function Kitchen() {
             } catch {
                 // Silenciar error si no hay audio
             }
+
+            // Mostrar notificación específica para pedidos de Telegram
+            newOrders.forEach(order => {
+                if (order.origin === 'telegram') {
+                    addToast(
+                        'info',
+                        '📱 Nuevo Pedido de Telegram',
+                        `Pedido ${order.orderNumber} - ${order.customerName || 'Cliente'}`
+                    )
+                } else {
+                    addToast(
+                        'info',
+                        '🔔 Nuevo Pedido',
+                        `Pedido ${order.orderNumber} recibido`
+                    )
+                }
+            })
         }
+
+        // Actualizar referencias
+        prevOrderIds.current = new Set(orders.map(o => o.id!))
         prevOrdersCount.current = orders.length
-    }, [orders.length])
+    }, [orders, addToast])
 
     const handleStatusChange = async (order: Order, newStatus: Order['status']) => {
         if (!order.id) return
 
         try {
-            const updates: Partial<Order> = { status: newStatus }
+            const effectiveStatus = newStatus === 'ready' && order.type === 'delivery' ? 'on_the_way' : newStatus
+            const updates: Partial<Order> = { status: effectiveStatus }
 
             if (newStatus === 'confirmed') {
                 updates.confirmedAt = new Date()
@@ -107,6 +146,7 @@ export function Kitchen() {
             confirmed: 'Confirmado',
             preparing: 'Preparando',
             ready: 'Listo',
+            on_the_way: 'En camino',
             delivered: 'Entregado',
             completed: 'Completado',
             cancelled: 'Cancelado'
@@ -155,7 +195,7 @@ export function Kitchen() {
 
                     <div className={styles.columnContent}>
                         {pendingOrders.map(order => (
-                            <div key={order.id} className={`${styles.ticket} ${styles.ticketPending}`}>
+                            <div key={order.id} className={`${styles.ticket} ${styles.ticketPending} ${order.origin === 'telegram' ? styles.ticketTelegram : ''}`}>
                                 <div className={styles.ticketHeader}>
                                     <div className={styles.orderMeta}>
                                         <span className={styles.orderNumber}>Pedido {order.orderNumber}</span>
@@ -190,8 +230,8 @@ export function Kitchen() {
                                 </div>
 
                                 <ul className={styles.itemsList}>
-                                    {order.items.map(item => (
-                                        <li key={item.id} className={styles.item}>
+                                    {order.items.map((item, index) => (
+                                        <li key={`${order.id}-${item.id}-${index}`} className={styles.item}>
                                             <span className={styles.itemQty}>{item.quantity}x</span>
                                             <div className={styles.itemDetails}>
                                                 <span className={styles.itemName}>{item.productName}</span>
@@ -247,7 +287,7 @@ export function Kitchen() {
 
                     <div className={styles.columnContent}>
                         {preparingOrders.map(order => (
-                            <div key={order.id} className={`${styles.ticket} ${styles.ticketPreparing}`}>
+                            <div key={order.id} className={`${styles.ticket} ${styles.ticketPreparing} ${order.origin === 'telegram' ? styles.ticketTelegram : ''}`}>
                                 <div className={styles.ticketHeader}>
                                     <div className={styles.orderMeta}>
                                         <span className={styles.orderNumber}>Pedido {order.orderNumber}</span>
@@ -281,8 +321,8 @@ export function Kitchen() {
                                 </div>
 
                                 <ul className={styles.itemsList}>
-                                    {order.items.map(item => (
-                                        <li key={item.id} className={styles.item}>
+                                    {order.items.map((item, index) => (
+                                        <li key={`${order.id}-${item.id}-${index}`} className={styles.item}>
                                             <span className={styles.itemQty}>{item.quantity}x</span>
                                             <div className={styles.itemDetails}>
                                                 <span className={styles.itemName}>{item.productName}</span>
