@@ -19,3 +19,9 @@ docs/*.jpg
 docs/*.jpeg
 docs/*.gif
 docs/*.webp
+
+# IDE
+.idea/
+
+# Local notes
+task/
