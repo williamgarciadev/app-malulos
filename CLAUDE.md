@@ -70,6 +70,25 @@ npm run lint
 
 # Ejecutar seed de datos iniciales (solo si la BD está vacía)
 cd server && npm run seed
+
+# Verificar datos en la base de datos (útil para debugging)
+cd server && npm run check
+```
+
+### Variables de Entorno
+
+**Frontend** (opcional, en raíz del proyecto):
+```bash
+# Crear archivo .env en la raíz (opcional)
+VITE_API_URL=http://localhost:3000/api
+```
+**Nota**: Si no se define `VITE_API_URL`, el frontend automáticamente construye la URL del backend usando `window.location.hostname:3000/api`, lo cual permite acceso desde cualquier IP en la red local sin configuración adicional.
+
+**Backend** (`server/.env`, **REQUERIDO**):
+```bash
+DATABASE_URL=postgresql://usuario:password@localhost:5432/malulos_pos
+PORT=3000
+TELEGRAM_BOT_TOKEN=tu_token_aqui  # Opcional, solo si usas el bot de Telegram
 ```
 
 ### Acceso desde Otros Dispositivos
@@ -139,18 +158,23 @@ La aplicación tiene un flujo de autenticación de dos niveles obligatorios:
 - `CashGuard`: Verifica que exista una sesión de caja abierta, redirige a `/cash` si no hay sesión activa
 - Las rutas protegidas pueden requerir permisos específicos basados en el rol del usuario
 
-**Jerarquía de Rutas** (ver `App.tsx:44-85`):
+**Jerarquía de Rutas** (ver `App.tsx:20-78`):
 ```
 /login (público)
 / (ProtectedRoute)
   ├── <CashGuard> (requiere sesión de caja abierta)
   │   ├── / (Home - selector de mesas)
   │   ├── /tables (vista de mesas)
-  │   └── /orders/:tableId? (gestión de pedidos)
+  │   ├── /orders (gestión de pedidos)
+  │   └── /orders/:tableId (gestión de pedidos por mesa)
   ├── /kitchen (cocina - sin CashGuard)
+  ├── /customers (gestión de clientes - sin CashGuard)
+  ├── /telegram-orders (pedidos de Telegram - requiere permission: canManageCash)
   ├── /cash (gestión de caja - requiere permission: canManageCash)
   ├── /menu (gestión de menú - requiere permission: canManageMenu)
-  └── /reports (reportes - requiere permission: canViewReports)
+  ├── /reports (reportes - requiere permission: canViewReports)
+  ├── /users (gestión de usuarios - requiere permission: canManageUsers)
+  └── /manage-tables (configuración de mesas - requiere permission: canManageMenu)
 ```
 
 ### Sistema de Roles y Permisos
@@ -161,8 +185,11 @@ Definido en `src/types/index.ts:186-221`:
 
 **Permisos por Rol**:
 - **admin**: Acceso total (todos los permisos)
+  - `canTakeOrders`, `canProcessPayments`, `canManageCash`, `canManageMenu`, `canViewReports`, `canManageUsers`
 - **cashier**: Puede tomar pedidos, procesar pagos, gestionar caja
+  - `canTakeOrders`, `canProcessPayments`, `canManageCash`
 - **waiter**: Solo puede tomar pedidos (no puede cobrar ni gestionar caja)
+  - `canTakeOrders`
 
 ### Base de Datos PostgreSQL
 
@@ -170,17 +197,24 @@ Definido en `src/types/index.ts:186-221`:
 
 **Schema** (`server/src/config/database.js`):
 ```typescript
-Version 3:
+Tablas principales:
 - categories: Categorías de productos (hamburguesas, bebidas, etc.)
 - products: Productos con precios, tamaños, modificadores y combos
 - restaurantTables: Mesas del restaurante con estado y posición
-- orders: Pedidos con items, pagos y estados
-- customers: Clientes (para delivery)
+- orders: Pedidos con items, pagos, estados y origen (POS/Telegram)
+- customers: Clientes con teléfono, dirección y telegramId
 - config: Configuración global de la aplicación
-- users: Usuarios con PIN y roles
+- users: Usuarios del sistema con PIN y roles
 - cashSessions: Sesiones de caja (apertura/cierre)
 - cashMovements: Movimientos de efectivo (entradas/salidas)
 ```
+
+**Relaciones importantes**:
+- `products.categoryId` → `categories.id` (CASCADE)
+- `orders.tableId` → `restaurantTables.id` (SET NULL)
+- `orders.customerId` → `customers.id` (SET NULL)
+- `restaurantTables.currentOrderId` → `orders.id` (referencia inversa)
+- `cashMovements.sessionId` → `cashSessions.id` (CASCADE)
 
 **Seed Data**: Ejecutar `npm run seed` desde el directorio `server/` para insertar datos de ejemplo (ver `server/src/scripts/seed.js`).
 
@@ -188,6 +222,44 @@ Version 3:
 - Admin: PIN `1234` (acceso total)
 - Cajero: PIN `2222` (operaciones de caja)
 - Mesero: PIN `3333` (solo tomar pedidos)
+
+### Sistema de Clientes
+
+**Gestión de Clientes** (`/customers`):
+- Registro de clientes con nombre, teléfono, dirección y notas
+- Historial de pedidos por cliente
+- Vinculación con Telegram mediante `telegramId`
+- Tracking de `lastOrderAt` para identificar clientes frecuentes
+
+**Campos de Cliente**:
+- `name`: Nombre completo
+- `phone`: Teléfono de contacto
+- `address`: Dirección de entrega (para delivery)
+- `notes`: Notas adicionales (preferencias, referencias)
+- `telegramId`: ID único de Telegram (si usa el bot)
+- `createdAt`: Fecha de registro
+- `lastOrderAt`: Fecha del último pedido
+
+### Integración con Telegram Bot
+
+El sistema incluye integración con Telegram para recibir pedidos de clientes:
+
+**Variables de Entorno** (`server/.env`):
+- `TELEGRAM_BOT_TOKEN`: Token del bot de Telegram (obtener en @BotFather)
+
+**Funcionalidad**:
+- Los clientes pueden hacer pedidos a través del bot de Telegram
+- Los pedidos llegan a la vista `/telegram-orders` en el POS
+- Se vinculan automáticamente con clientes existentes mediante `telegramId`
+- Notificaciones automáticas a clientes sobre el estado de sus pedidos
+
+**Flujo de Pedidos por Telegram**:
+1. Cliente inicia conversación con el bot de Telegram
+2. Bot muestra menú de productos disponibles
+3. Cliente selecciona productos y confirma pedido
+4. Pedido aparece en `/telegram-orders` con `origin: 'telegram'`
+5. Personal procesa pedido y actualiza estado
+6. Cliente recibe notificaciones automáticas del estado
 
 ### State Management (Zustand)
 
@@ -203,6 +275,10 @@ Version 3:
 
 3. **cartStore** - Carrito de compras actual
    - Métodos: `addItem()`, `updateQuantity()`, `clearCart()`
+
+4. **themeStore** - Gestión de tema visual (claro/oscuro)
+   - Persiste en localStorage (`malulos-theme`)
+   - Métodos: `toggleTheme()`, `setTheme()`
 
 ### Sistema de Productos y Precios
 
@@ -221,12 +297,28 @@ precioFinal = basePrice + selectedSize.priceModifier + sum(selectedModifiers.pri
 
 ### Flujo de Pedidos
 
-1. **Creación**: Se crea orden desde Home o Tables (asociada a mesa o para llevar)
-2. **Estados del Pedido**: `pending` → `confirmed` → `preparing` → `ready` → `delivered` → `completed`
-3. **Estados de Pago**: `pending` → `partial` → `paid`
-4. **Cocina**: Vista Kitchen muestra pedidos `confirmed` y `preparing`
-5. **Pago**: Modal de pago permite métodos: `cash`, `card`, `transfer`, `mixed`
-6. **Ticket**: Se genera PDF del ticket tras completar pago (ver `ticketService.ts`)
+**Tipos de Pedido**:
+- `dine-in`: Para consumir en el restaurante (asociado a mesa)
+- `takeout`: Para llevar
+- `delivery`: Entrega a domicilio (requiere datos de cliente)
+
+**Origen del Pedido** (`origin`):
+- `pos`: Creado desde el sistema POS (default)
+- `telegram`: Creado a través del bot de Telegram
+
+**Estados del Pedido**: `pending` → `confirmed` → `preparing` → `ready` → `delivered` → `completed`
+
+**Estados de Pago**: `pending` → `partial` → `paid`
+
+**Flujo Completo**:
+1. **Creación**: Se crea orden desde Home, Tables o Telegram (asociada a mesa, para llevar o delivery)
+2. **Confirmación**: El pedido es confirmado por el mesero o automáticamente (Telegram)
+3. **Cocina**: Vista Kitchen muestra pedidos `confirmed` y `preparing`
+4. **Preparación**: Cocina actualiza estado a `preparing` → `ready`
+5. **Entrega**: Mesero marca como `delivered` (dine-in) o `on_the_way` (delivery)
+6. **Pago**: Modal de pago permite métodos: `cash`, `card`, `transfer`, `nequi`, `daviplata`, `mixed`
+7. **Completado**: Pedido marcado como `completed` tras pago
+8. **Ticket**: Se genera PDF del ticket tras completar pago (ver `ticketService.ts`)
 
 ### Path Alias
 
@@ -243,6 +335,21 @@ import type { User } from '@/types'
 - El frontend consume la API REST de forma exclusiva.
 - Polling implementado en vistas críticas (Mesas, Cocina, Home) para sincronización.
 - PostgreSQL ofrece mejor rendimiento, concurrencia y escalabilidad que SQLite.
+
+### Sincronización Multi-Dispositivo
+El sistema soporta múltiples dispositivos simultáneos mediante:
+
+**Polling Automático**: Las vistas críticas actualizan datos automáticamente cada pocos segundos:
+- `/kitchen`: Actualiza lista de pedidos activos
+- `/tables`: Sincroniza estados de mesas
+- `/` (Home): Actualiza disponibilidad de mesas
+
+**Concurrencia**: PostgreSQL maneja múltiples conexiones simultáneas de:
+- Meseros (tablets/móviles) - toman pedidos
+- Cocina (pantalla fija) - ven pedidos en tiempo real
+- Caja (terminal POS) - procesan pagos y reportes
+
+**Recomendación**: Para implementar sincronización en tiempo real más eficiente, considera usar WebSockets o Server-Sent Events (SSE) en el futuro.
 
 ### Gestión de Caja Obligatoria
 - **Antes de tomar pedidos**, debe haber una sesión de caja abierta
