@@ -12,3 +12,10 @@ server/malulos_backup_*.db
 
 # Vite
 *.local
+
+# Docs images
+docs/*.png
+docs/*.jpg
+docs/*.jpeg
+docs/*.gif
+docs/*.webp
