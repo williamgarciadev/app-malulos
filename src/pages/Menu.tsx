@@ -266,7 +266,7 @@ export function Menu() {
                                     <div className={styles.productInfo}>
                                         <h3 className={styles.productName}>
                                             {product.name}
-                                            {product.isCombo && <span className={styles.comboBadge}>Combo</span>}
+                                            {Boolean(product.isCombo) && <span className={styles.comboBadge}>Combo</span>}
                                         </h3>
                                         <p className={styles.productDesc}>{product.description}</p>
 
