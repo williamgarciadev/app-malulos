@@ -68,7 +68,7 @@ export class Order {
     static async getActiveOrders() {
         const res = await pool.query(`
             SELECT ${ORDER_SELECT_FIELDS} FROM orders
-            WHERE status IN ('pending', 'confirmed', 'preparing', 'ready')
+            WHERE status IN ('pending', 'confirmed', 'preparing', 'ready', 'on_the_way')
             ORDER BY createdAt DESC
         `);
         return res.rows;

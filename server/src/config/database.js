@@ -110,7 +110,7 @@ export const initSchema = async () => {
             id SERIAL PRIMARY KEY,
             name TEXT NOT NULL,
             pin TEXT NOT NULL UNIQUE,
-            role TEXT NOT NULL CHECK(role IN ('admin', 'cashier', 'waiter')),
+            role TEXT NOT NULL CHECK(role IN ('admin', 'cashier', 'waiter', 'delivery')),
             isActive INTEGER NOT NULL DEFAULT 1,
             createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         )`,
@@ -214,6 +214,21 @@ export const initSchema = async () => {
             console.log('🔄 Migración 3: Constraint de status actualizado.');
         } catch (err) {
             console.log('ℹ️  Constraint de status ya está actualizado.');
+        }
+
+        // Migracion 4: Actualizar constraint de roles en users
+        try {
+            await query(`
+                ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check
+            `);
+            await query(`
+                ALTER TABLE users
+                ADD CONSTRAINT users_role_check
+                CHECK (role IN ('admin', 'cashier', 'waiter', 'delivery'))
+            `);
+            console.log('?? Migracion 4: Constraint de roles actualizado.');
+        } catch (err) {
+            console.log('??  Constraint de roles ya esta actualizado.');
         }
 
         console.log('✅ Esquema base verificado.');

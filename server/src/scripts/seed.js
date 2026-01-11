@@ -460,7 +460,8 @@ const seedDatabase = async () => {
         const users = [
             ['Admin', '1234', 'admin', 1],
             ['Cajero', '2222', 'cashier', 1],
-            ['Mesero', '3333', 'waiter', 1]
+            ['Mesero', '3333', 'waiter', 1],
+            ['Repartidor', '4444', 'delivery', 1]
         ];
 
         let insertedCount = 0;
@@ -492,6 +493,7 @@ const seedDatabase = async () => {
         console.log('   - Admin: PIN 1234 (acceso total)');
         console.log('   - Cajero: PIN 2222 (operaciones de caja)');
         console.log('   - Mesero: PIN 3333 (solo tomar pedidos)');
+        console.log('   - Repartidor: PIN 4444 (entregas y cobro)');
         console.log('\n🍔 Menú Malulos Ahumados cargado correctamente!');
 
     } catch (error) {

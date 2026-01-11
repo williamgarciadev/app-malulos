@@ -173,7 +173,7 @@ export interface AppConfig {
 }
 
 // ---------- Usuarios ----------
-export type UserRole = 'admin' | 'cashier' | 'waiter'
+export type UserRole = 'admin' | 'cashier' | 'waiter' | 'delivery'
 
 export interface User {
     id?: number
@@ -191,6 +191,7 @@ export interface UserPermissions {
     canViewReports: boolean
     canManageMenu: boolean
     canManageUsers: boolean
+    canDeliverOrders: boolean
 }
 
 // Permisos por rol
@@ -201,7 +202,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, UserPermissions> = {
         canManageCash: true,
         canViewReports: true,
         canManageMenu: true,
-        canManageUsers: true
+        canManageUsers: true,
+        canDeliverOrders: true
     },
     cashier: {
         canTakeOrders: true,
@@ -209,7 +211,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, UserPermissions> = {
         canManageCash: true,
         canViewReports: false,
         canManageMenu: false,
-        canManageUsers: false
+        canManageUsers: false,
+        canDeliverOrders: false
     },
     waiter: {
         canTakeOrders: true,
@@ -217,7 +220,17 @@ export const ROLE_PERMISSIONS: Record<UserRole, UserPermissions> = {
         canManageCash: false,
         canViewReports: false,
         canManageMenu: false,
-        canManageUsers: false
+        canManageUsers: false,
+        canDeliverOrders: false
+    },
+    delivery: {
+        canTakeOrders: false,
+        canProcessPayments: true, // Puede cobrar contraentrega
+        canManageCash: false,
+        canViewReports: false,
+        canManageMenu: false,
+        canManageUsers: false,
+        canDeliverOrders: true
     }
 }
 

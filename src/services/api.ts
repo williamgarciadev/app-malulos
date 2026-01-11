@@ -13,17 +13,32 @@ import type {
 } from '@/types'
 
 // URL del backend.
-// Si hay variable de entorno, la usa.
-// Si no, construye la URL basada en la IP actual del navegador (útil para red local).
-// Asume que si el frontend está en puerto 5174, el backend está en el 3000 de la misma IP.
-export const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3000/api`;
+// Si hay variable de entorno, la usa y normaliza el prefijo /api.
+// Si no, construye la URL basada en la IP actual del navegador (util para red local).
+// Asume que si el frontend esta en puerto 5174, el backend esta en el 3000 de la misma IP.
+const rawApiUrl = import.meta.env.VITE_API_URL as string | undefined;
+
+const normalizeApiUrl = (value?: string) => {
+    if (!value) {
+        return `http://${window.location.hostname}:3000/api`;
+    }
+
+    if (value.startsWith('/')) {
+        return `http://${window.location.hostname}:3000${value.replace(/\/$/, '')}`;
+    }
+
+    const trimmed = value.replace(/\/$/, '');
+    return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+};
+
+export const API_URL = normalizeApiUrl(rawApiUrl);
 
 interface RequestOptions extends RequestInit {
     headers?: Record<string, string>;
 }
 
 /**
- * Función genérica para realizar peticiones a la API
+ * Funcion generica para realizar peticiones a la API
  */
 export async function fetchApi<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const url = `${API_URL}${endpoint}`;
@@ -71,7 +86,7 @@ export async function fetchApi<T>(endpoint: string, options: RequestOptions = {}
 }
 
 // ============================================
-// API METHODS - Funciones específicas por entidad
+// API METHODS - Funciones especificas por entidad
 // ============================================
 
 // ---------- PRODUCTOS ----------
@@ -98,7 +113,7 @@ export const productsApi = {
         fetchApi<void>(`/products/${id}`, { method: 'DELETE' })
 }
 
-// ---------- CATEGORÍAS ----------
+// ---------- CATEGORIAS ----------
 export const categoriesApi = {
     getAll: () => fetchApi<Category[]>('/categories'),
 
@@ -243,7 +258,7 @@ export const customersApi = {
         })
 }
 
-// ---------- CONFIGURACIÓN ----------
+// ---------- CONFIGURACION ----------
 export const configApi = {
     get: () => fetchApi<AppConfig>('/config'),
 

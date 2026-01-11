@@ -2,12 +2,12 @@
 
 ## Project Structure & Module Organization
 - `src/` holds the React + TypeScript frontend. Key areas: `components/`, `pages/`, `stores/` (Zustand), `services/` (API + tickets), `styles/`, and `types/` (shared types).
-- `server/` contains the Express + SQLite backend. Entry point is `server/src/index.js`, with DB config in `server/src/config/` and models in `server/src/models/`.
+- `server/` contains the Express + PostgreSQL backend. Entry point is `server/src/index.js`, with DB config in `server/src/config/` and models in `server/src/models/`.
 - `public/` stores static assets served by Vite. `docs/` includes screenshots. `tasks/` is for internal notes.
 
 ## Build, Test, and Development Commands
 - `npm install` installs frontend dependencies (run once). Then `cd server && npm install` for the API.
-- `npm run init-db` initializes `server/malulos.db` and seeds data (destructive to existing data).
+- `npm run seed` loads initial data in PostgreSQL (destructive to existing data).
 - `npm run dev` runs the frontend only; `npm run dev:server` runs the backend only.
 - `npm run dev:all` runs both frontend and backend together (recommended).
 - `npm run build` builds the frontend; `npm run preview` serves the build locally.
@@ -28,9 +28,9 @@
 ## Commit & Pull Request Guidelines
 - Commits follow Conventional Commits style (e.g., `feat: ...`, `fix: ...`).
 - PRs should include a short summary, testing steps, and screenshots for UI changes.
-- If you change DB schema or seed data, mention whether `npm run init-db` is required.
+- If you change DB schema or seed data, mention whether `npm run seed` is required.
 
 ## Configuration & Security Notes
-- Configure backend URL via `.env`: `VITE_API_URL=http://localhost:3000`.
+- Configure backend URL via `.env`: `VITE_API_URL=http://localhost:3000/api`.
 - Frontend runs on port `5174`, backend on `3000` in dev.
-- Do not commit local SQLite data (`server/malulos.db`).
+- Do not commit local environment files (`server/.env`).

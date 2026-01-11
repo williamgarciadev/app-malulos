@@ -3,6 +3,7 @@ import { Layout } from './components/layout/Layout'
 import { Home } from './pages/Home'
 import { Orders } from './pages/Orders'
 import { Kitchen } from './pages/Kitchen'
+import { Delivery } from './pages/Delivery'
 import { Menu } from './pages/Menu'
 import { Reports } from './pages/Reports'
 import { Tables } from './pages/Tables'
@@ -36,6 +37,14 @@ function App() {
                 </Route>
 
                 <Route path="kitchen" element={<Kitchen />} />
+                <Route
+                    path="delivery"
+                    element={
+                        <ProtectedRoute permission="canDeliverOrders">
+                            <Delivery />
+                        </ProtectedRoute>
+                    }
+                />
                 <Route path="customers" element={<Customers />} />
 
                 <Route path="telegram-orders" element={

@@ -10,7 +10,9 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "init-db": "cd server && npm run init-db",
+    "init-db": "cd server && npm run seed",
+    "seed": "cd server && npm run seed",
+    "check": "cd server && npm run check",
     "install:all": "npm install && cd server && npm install",
     "render:build": "npm run install:all && npm run build",
     "start": "cd server && npm start"

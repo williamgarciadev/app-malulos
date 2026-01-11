@@ -86,14 +86,23 @@ export function CashRegister() {
         )
     }
 
-    const expectedTotal = currentSession.openingAmount + currentSession.cashSales
+    // Parseo seguro de valores
+    const openingAmount = Number(currentSession.openingAmount) || 0
+    const cashSales = Number(currentSession.cashSales) || 0
+    const cardSales = Number(currentSession.cardSales) || 0
+    const transferSales = Number(currentSession.transferSales) || 0
+    const nequiSales = Number(currentSession.nequiSales) || 0
+    const daviplataSales = Number(currentSession.davipplataSales) || 0
+    
+    const expectedTotal = openingAmount + cashSales
+    const openedAtDate = currentSession.openedAt ? new Date(currentSession.openedAt) : new Date()
 
     return (
         <div className={styles.openView}>
             <header className={styles.header}>
                 <div className={styles.sessionInfo}>
                     <h1>Control de Caja</h1>
-                    <p>Responsable: <strong>{currentSession.userName}</strong> | Abierta: {new Date(currentSession.openedAt).toLocaleTimeString()}</p>
+                    <p>Responsable: <strong>{currentSession.userName}</strong> | Abierta: {!isNaN(openedAtDate.getTime()) ? openedAtDate.toLocaleTimeString() : 'Hora desconocida'}</p>
                 </div>
                 <div className={styles.statusBadge}>
                     <Unlock size={14} />
@@ -104,27 +113,27 @@ export function CashRegister() {
             <div className={styles.statsGrid}>
                 <div className={styles.statCard}>
                     <span className={styles.statLabel}>Base Inicial</span>
-                    <span className={styles.statValue}>{formatPrice(currentSession.openingAmount)}</span>
+                    <span className={styles.statValue}>{formatPrice(openingAmount)}</span>
                 </div>
                 <div className={styles.statCard}>
                     <span className={styles.statLabel}>Efectivo</span>
-                    <span className={styles.statValue}>{formatPrice(currentSession.cashSales || 0)}</span>
+                    <span className={styles.statValue}>{formatPrice(cashSales)}</span>
                 </div>
                 <div className={styles.statCard}>
                     <span className={styles.statLabel}>Tarjeta</span>
-                    <span className={styles.statValue}>{formatPrice(currentSession.cardSales || 0)}</span>
+                    <span className={styles.statValue}>{formatPrice(cardSales)}</span>
                 </div>
                 <div className={styles.statCard}>
                     <span className={styles.statLabel}>Transferencia</span>
-                    <span className={styles.statValue}>{formatPrice(currentSession.transferSales || 0)}</span>
+                    <span className={styles.statValue}>{formatPrice(transferSales)}</span>
                 </div>
                 <div className={`${styles.statCard} ${styles.statNequi}`}>
                     <span className={styles.statLabel}>Nequi</span>
-                    <span className={styles.statValue}>{formatPrice(currentSession.nequiSales || 0)}</span>
+                    <span className={styles.statValue}>{formatPrice(nequiSales)}</span>
                 </div>
                 <div className={`${styles.statCard} ${styles.statDaviplata}`}>
                     <span className={styles.statLabel}>DaviPlata</span>
-                    <span className={styles.statValue}>{formatPrice(currentSession.davipplataSales || 0)}</span>
+                    <span className={styles.statValue}>{formatPrice(daviplataSales)}</span>
                 </div>
                 <div className={`${styles.statCard} ${styles.statPrimary}`}>
                     <span className={styles.statLabel}>Total Esperado en Caja</span>
