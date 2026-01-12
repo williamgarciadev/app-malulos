@@ -227,6 +227,35 @@ export function Orders() {
             }
         }
 
+        const orderItems = cart.items.map(item => ({
+            id: item.id,
+            productId: item.product.id!,
+            productName: item.product.name,
+            quantity: item.quantity,
+            selectedSize: item.selectedSize,
+            selectedModifiers: item.selectedModifiers,
+            comboSelections: item.comboSelections,
+            notes: item.notes,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
+            status: 'pending'
+        }))
+        const orderType = cart.orderType
+        const orderTotals = {
+            subtotal: cart.getSubtotal(),
+            total: cart.getTotal()
+        }
+        const customerSnapshot = {
+            customerId: cart.customerId || undefined,
+            customerName: cart.customerName || undefined,
+            customerPhone: cart.customerPhone || undefined,
+            customerAddress: cart.customerAddress || undefined
+        }
+        const guestCountSnapshot = cart.guestCount || undefined
+
+        addToast('info', 'Enviando', 'Pedido en proceso...')
+        navigate('/tables')
+
         try {
             let tableName = undefined
             if (tableId) {
@@ -240,34 +269,22 @@ export function Orders() {
             }
 
             const orderData = {
-                type: cart.orderType,
+                type: orderType,
                 tableId: tableId ? parseInt(tableId) : undefined,
                 tableName,
-                guestCount: cart.guestCount || undefined,
-                customerId: cart.customerId || undefined,
-                customerName: cart.customerName || undefined,
-                customerPhone: cart.customerPhone || undefined,
-                customerAddress: cart.customerAddress || undefined,
-                items: cart.items.map(item => ({
-                    id: item.id,
-                    productId: item.product.id!,
-                    productName: item.product.name,
-                    quantity: item.quantity,
-                    selectedSize: item.selectedSize,
-                    selectedModifiers: item.selectedModifiers,
-                    comboSelections: item.comboSelections,
-                    notes: item.notes,
-                    unitPrice: item.unitPrice,
-                    totalPrice: item.totalPrice,
-                    status: 'pending'
-                })),
-                subtotal: cart.getSubtotal(),
+                guestCount: guestCountSnapshot,
+                customerId: customerSnapshot.customerId,
+                customerName: customerSnapshot.customerName,
+                customerPhone: customerSnapshot.customerPhone,
+                customerAddress: customerSnapshot.customerAddress,
+                items: orderItems,
+                subtotal: orderTotals.subtotal,
                 discount: 0,
                 tax: 0,
-                total: cart.getTotal(),
+                total: orderTotals.total,
                 status: 'pending',
                 paymentStatus: 'pending',
-                paymentMethod: cart.orderType === 'delivery' ? deliveryPaymentMethod : undefined,
+                paymentMethod: orderType === 'delivery' ? deliveryPaymentMethod : undefined,
                 paidAmount: 0,
                 createdAt: new Date(),
                 confirmedAt: new Date()
@@ -287,8 +304,6 @@ export function Orders() {
                 })
             }
 
-            cart.clearCart()
-            
             // Usar el número real devuelto por el servidor
             const realOrderNumber = createdOrder?.orderNumber || 'Nueva';
             
@@ -298,8 +313,8 @@ export function Orders() {
             }
 
             addToast('success', 'Pedido enviado', `Orden ${realOrderNumber} enviada a cocina`)
-            
-            navigate('/kitchen')
+
+            cart.clearCart()
         } catch (error) {
             console.error('Error sending order:', error)
             addToast('error', 'Error al enviar', 'No se pudo enviar el pedido. Intente nuevamente.')

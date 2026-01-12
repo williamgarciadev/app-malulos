@@ -1,11 +1,11 @@
 .loginPage {
-    min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     align-items: center;
     justify-content: center;
     background: url('/images/login-bg.png') no-repeat center center;
     background-size: cover;
-    padding: var(--space-lg);
+    padding: clamp(var(--space-sm), 2vw, var(--space-lg));
     position: relative;
     overflow: hidden;
 }
@@ -28,7 +28,7 @@
     flex-direction: column;
     align-items: center;
     z-index: 1;
-    padding: var(--space-xl);
+    padding: clamp(var(--space-md), 3vw, var(--space-xl));
     background: rgba(24, 24, 27, 0.6);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -44,10 +44,10 @@
 }
 
 .logoImage {
-    width: 120px;
-    height: 120px;
+    width: clamp(84px, 18vw, 120px);
+    height: clamp(84px, 18vw, 120px);
     object-fit: contain;
-    margin-bottom: var(--space-md);
+    margin: 0 auto var(--space-md);
     filter: drop-shadow(0 0 20px rgba(249, 115, 22, 0.4));
     animation: floating 3s ease-in-out infinite;
 }
@@ -68,7 +68,7 @@
 }
 
 .subtitle {
-    color: var(--color-text-muted);
+    color: rgba(248, 250, 252, 0.78);
     font-size: var(--font-size-md);
     font-weight: 500;
 }
@@ -86,7 +86,7 @@
 }
 
 .footer {
-    margin-top: var(--space-2xl);
+    margin-top: clamp(var(--space-lg), 4vw, var(--space-2xl));
     padding: var(--space-md);
     text-align: center;
 }
@@ -97,6 +97,39 @@
     letter-spacing: 0.05em;
     text-transform: uppercase;
     font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .container {
+        animation: none;
+    }
+
+    .logoImage {
+        animation: none;
+    }
+
+    .errorMsg {
+        animation: none;
+    }
+}
+
+@media (max-height: 820px) {
+    .header {
+        margin-bottom: var(--space-lg);
+    }
+
+    .container {
+        padding: var(--space-lg);
+    }
+
+    .logoImage {
+        margin-bottom: var(--space-sm);
+    }
+
+    .footer {
+        margin-top: var(--space-lg);
+        padding: var(--space-sm);
+    }
 }
 
 @keyframes floating {

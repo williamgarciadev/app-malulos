@@ -20,6 +20,7 @@ export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: P
     const [receivedAmount, setReceivedAmount] = useState<string>('')
     const [isProcessing, setIsProcessing] = useState(false)
     const [showSuccess, setShowSuccess] = useState(false)
+    const [isCompact, setIsCompact] = useState(false)
     const { currentSession, refreshSession } = useCashStore()
 
     // Resetear valores cuando cambie la orden
@@ -29,6 +30,16 @@ export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: P
         setIsProcessing(false)
         setShowSuccess(false)
     }, [order.id])
+
+    useEffect(() => {
+        const updateCompact = () => {
+            setIsCompact(window.innerHeight <= 760)
+        }
+
+        updateCompact()
+        window.addEventListener('resize', updateCompact)
+        return () => window.removeEventListener('resize', updateCompact)
+    }, [])
 
     const total = order.total
     const received = parseFloat(receivedAmount) || 0
@@ -43,6 +54,8 @@ export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: P
     }
 
     const quickAmounts = [20000, 50000, 100000]
+    const visibleItems = isCompact ? order.items.slice(0, 2) : order.items
+    const hiddenItems = order.items.length - visibleItems.length
 
     const handlePrint = async () => {
         try {
@@ -208,7 +221,7 @@ export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: P
                 <div className={styles.summary}>
                     <h3 className={styles.sectionTitle}>Resumen del Pedido</h3>
                     <ul className={styles.itemsList}>
-                        {order.items.map((item, index) => (
+                        {visibleItems.map((item, index) => (
                             <li key={index} className={styles.item}>
                                 <span className={styles.itemQty}>{item.quantity}x</span>
                                 <span className={styles.itemName}>{item.productName}</span>
@@ -216,6 +229,9 @@ export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: P
                             </li>
                         ))}
                     </ul>
+                    {isCompact && hiddenItems > 0 && (
+                        <div className={styles.itemsMore}>+ {hiddenItems} items más</div>
+                    )}
 
                     <div className={styles.totalRow}>
                         <span>Total a Pagar</span>

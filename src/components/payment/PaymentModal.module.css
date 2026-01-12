@@ -14,7 +14,7 @@
 .modal {
     width: 100%;
     max-width: 450px;
-    max-height: 90vh;
+    max-height: 90dvh;
     background: var(--color-bg-card);
     border-radius: var(--radius-xl);
     padding: var(--space-lg);
@@ -116,6 +116,13 @@
 .itemPrice {
     font-weight: 600;
     color: var(--color-text-muted);
+}
+
+.itemsMore {
+    margin: -4px 0 var(--space-md);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    text-align: center;
 }
 
 .totalRow {
@@ -284,6 +291,84 @@
 .confirmBtn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+@media (max-height: 820px) {
+    .modal {
+        max-height: 94dvh;
+        padding: var(--space-md);
+    }
+
+    .closeBtn {
+        width: 32px;
+        height: 32px;
+    }
+
+    .header {
+        margin-bottom: var(--space-md);
+        padding-bottom: var(--space-sm);
+    }
+
+    .title {
+        font-size: var(--font-size-lg);
+    }
+
+    .sectionTitle {
+        font-size: 11px;
+        margin-bottom: var(--space-xs);
+    }
+
+    .summary,
+    .paymentMethod,
+    .cashSection {
+        margin-bottom: var(--space-md);
+    }
+
+    .item {
+        padding: 6px 8px;
+        font-size: var(--font-size-xs);
+    }
+
+    .totalRow {
+        padding: var(--space-sm);
+    }
+
+    .totalAmount {
+        font-size: var(--font-size-lg);
+    }
+
+    .methodButtons {
+        gap: var(--space-xs);
+    }
+
+    .methodBtn {
+        padding: var(--space-sm);
+        font-size: var(--font-size-xs);
+    }
+
+    .amountInput {
+        padding: var(--space-sm);
+        font-size: var(--font-size-lg);
+        margin-bottom: var(--space-xs);
+    }
+
+    .quickAmounts {
+        margin-bottom: var(--space-sm);
+    }
+
+    .quickBtn {
+        min-width: 60px;
+        padding: 6px;
+        font-size: var(--font-size-xs);
+    }
+
+    .changeRow {
+        padding: var(--space-sm);
+    }
+
+    .confirmBtn {
+        padding: var(--space-sm);
+    }
 }
 
 /* ---------- Success View ---------- */

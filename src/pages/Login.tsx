@@ -47,7 +47,7 @@ export function Login() {
                 </div>
 
                 {error && (
-                    <p className={styles.errorMsg}>⚠️ PIN Incorrecto</p>
+                    <p className={styles.errorMsg} role="alert">PIN incorrecto</p>
                 )}
 
                 <div className={styles.footer}>
