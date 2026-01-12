@@ -16,6 +16,13 @@ export default {
         textPrimary: "var(--color-text)",
         textMuted: "var(--color-text-muted)",
       },
+      boxShadow: {
+        'glass': 'var(--shadow-glass)',
+        'premium': '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
+      },
+      backdropBlur: {
+        xs: '2px',
+      }
     },
   },
   plugins: [],

@@ -56,26 +56,26 @@ export function Layout({ children }: LayoutProps) {
             {/* Sidebar / Topbar para Desktop */}
             {!isKitchenDisplay && (
                 <header className={styles.header}>
-                <div className={styles.logo}>
-                    <span className={styles.logoIcon}>🍔</span>
-                    <h1 className={styles.logoText}>Malulos</h1>
-                </div>
+                    <div className={styles.logo} onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+                        <img src="/images/logo.png" alt="Logo" className={styles.logoImg} />
+                        <h1 className={styles.logoText}>Malulos</h1>
+                    </div>
 
-                <div className={styles.userProfile}>
-                    <div className={styles.userInfo}>
-                        <span className={styles.userName}>{user?.name}</span>
-                        <span className={styles.userRole}>{user?.role}</span>
+                    <div className={styles.userProfile}>
+                        <div className={styles.userInfo}>
+                            <span className={styles.userName}>{user?.name}</span>
+                            <span className={styles.userRole}>{user?.role}</span>
+                        </div>
+                        <div className={styles.avatar}>
+                            <UserIcon size={18} />
+                        </div>
+
+                        <ThemeToggle />
+
+                        <button className={styles.logoutBtn} onClick={handleLogout} title="Cerrar Sesión">
+                            <LogOut size={18} />
+                        </button>
                     </div>
-                    <div className={styles.avatar}>
-                        <UserIcon size={18} />
-                    </div>
-                    
-                    <ThemeToggle />
-                    
-                    <button className={styles.logoutBtn} onClick={handleLogout} title="Cerrar Sesión">
-                        <LogOut size={18} />
-                    </button>
-                </div>
                 </header>
             )}
 

@@ -1,97 +1,108 @@
 .home {
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
+    gap: var(--space-xl);
     animation: fadeIn var(--transition-base) forwards;
 }
 
 /* ---------- Greeting ---------- */
 .greeting {
-    text-align: center;
-    padding: var(--space-lg) 0;
+    text-align: left;
+    padding: var(--space-md) 0;
 }
 
 .title {
     font-size: var(--font-size-3xl);
     font-weight: 800;
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin-bottom: var(--space-sm);
+    -webkit-text-fill-color: transparent;
+    margin-bottom: var(--space-xs);
 }
 
 .subtitle {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: var(--space-sm);
     color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
-    text-transform: capitalize;
+    font-size: var(--font-size-md);
+    font-weight: 500;
 }
 
 /* ---------- Stats ---------- */
 .stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: var(--space-md);
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--space-lg);
 }
 
 .statCard {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
-    padding: var(--space-md);
-    background: var(--color-bg-card);
-    border-radius: var(--radius-lg);
+    gap: var(--space-lg);
+    padding: var(--space-lg);
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: var(--radius-xl);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    transition: transform var(--transition-fast);
+    transition: all var(--transition-base);
 }
 
 .statCard:hover {
-    transform: translateY(-2px);
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: var(--shadow-lg);
 }
 
 .statIcon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-md);
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-lg);
     flex-shrink: 0;
+    font-size: 24px;
 }
 
 .statPrimary .statIcon {
-    background: rgba(255, 107, 53, 0.15);
+    background: rgba(249, 115, 22, 0.1);
     color: var(--color-primary);
+    border: 1px solid rgba(249, 115, 22, 0.1);
 }
 
 .statSecondary .statIcon {
-    background: rgba(78, 205, 196, 0.15);
+    background: rgba(45, 212, 191, 0.1);
     color: var(--color-secondary);
+    border: 1px solid rgba(45, 212, 191, 0.1);
 }
 
 .statInfo .statIcon {
-    background: rgba(51, 181, 229, 0.15);
+    background: rgba(59, 130, 246, 0.1);
     color: var(--color-info);
+    border: 1px solid rgba(59, 130, 246, 0.1);
 }
 
 .statInfo {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
 }
 
 .statValue {
-    font-size: var(--font-size-xl);
-    font-weight: 700;
+    font-size: var(--font-size-2xl);
+    font-weight: 800;
     color: var(--color-text);
+    line-height: 1;
 }
 
 .statLabel {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
     color: var(--color-text-muted);
 }
 
@@ -99,19 +110,22 @@
 .actions {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
+    gap: var(--space-lg);
 }
 
 .sectionTitle {
-    font-size: var(--font-size-lg);
-    font-weight: 600;
+    font-size: var(--font-size-xl);
+    font-weight: 700;
     color: var(--color-text);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
 }
 
 .actionsGrid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-md);
+    gap: var(--space-lg);
 }
 
 .actionCard {
@@ -119,83 +133,75 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--space-sm);
-    padding: var(--space-lg);
-    background: var(--color-bg-card);
-    border-radius: var(--radius-lg);
+    gap: var(--space-md);
+    padding: var(--space-xl);
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border-radius: var(--radius-xl);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    transition: all var(--transition-fast);
-    min-height: 120px;
+    transition: all var(--transition-base);
+    min-height: 160px;
 }
 
 .actionCard:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
-}
-
-.actionCard:active {
-    transform: scale(0.98);
+    transform: translateY(-6px);
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
 }
 
 .actionIcon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 56px;
-    height: 56px;
-    border-radius: var(--radius-full);
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-xl);
+    transition: all var(--transition-base);
 }
 
 .actionPrimary .actionIcon {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    background: var(--color-primary);
     color: white;
-    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+    box-shadow: 0 8px 16px rgba(249, 115, 22, 0.3);
 }
 
 .actionSecondary .actionIcon {
-    background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-secondary-dark) 100%);
+    background: var(--color-secondary);
     color: white;
-    box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+    box-shadow: 0 8px 16px rgba(45, 212, 191, 0.3);
 }
 
 .actionInfo .actionIcon {
-    background: linear-gradient(135deg, var(--color-info) 0%, #2196F3 100%);
+    background: var(--color-info);
     color: white;
-    box-shadow: 0 4px 15px rgba(51, 181, 229, 0.3);
+    box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
 }
 
 .actionWarning .actionIcon {
-    background: linear-gradient(135deg, var(--color-warning) 0%, #FF9800 100%);
+    background: var(--color-warning);
     color: white;
-    box-shadow: 0 4px 15px rgba(255, 187, 51, 0.3);
+    box-shadow: 0 8px 16px rgba(234, 179, 8, 0.3);
 }
 
 .actionLabel {
-    font-size: var(--font-size-sm);
-    font-weight: 600;
+    font-size: var(--font-size-md);
+    font-weight: 700;
     color: var(--color-text);
     text-align: center;
 }
 
-/* ---------- Telegram Orders Section ---------- */
+/* ---------- Telegram Orders ---------- */
 .telegramSection {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
-    padding: var(--space-lg);
-    background: linear-gradient(135deg, rgba(255, 107, 53, 0.05) 0%, rgba(78, 205, 196, 0.05) 100%);
-    border-radius: var(--radius-lg);
-    border: 2px solid rgba(255, 107, 53, 0.2);
-    animation: pulseGlow 2s ease-in-out infinite;
-}
-
-@keyframes pulseGlow {
-    0%, 100% {
-        box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
-    }
-    50% {
-        box-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
-    }
+    gap: var(--space-lg);
+    padding: var(--space-xl);
+    background: rgba(249, 115, 22, 0.03);
+    border-radius: var(--radius-2xl);
+    border: 1px solid rgba(249, 115, 22, 0.1);
+    backdrop-filter: blur(10px);
 }
 
 .telegramHeader {
@@ -205,22 +211,9 @@
     gap: var(--space-md);
 }
 
-.telegramHeader .sectionTitle {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    margin: 0;
-}
-
 .bellIcon {
     color: var(--color-warning);
-    animation: ringBell 1s ease-in-out infinite;
-}
-
-@keyframes ringBell {
-    0%, 100% { transform: rotate(0deg); }
-    10%, 30% { transform: rotate(-10deg); }
-    20%, 40% { transform: rotate(10deg); }
+    filter: drop-shadow(0 0 5px rgba(234, 179, 8, 0.4));
 }
 
 .telegramBadge {
@@ -229,51 +222,49 @@
     justify-content: center;
     min-width: 24px;
     height: 24px;
-    padding: 0 var(--space-xs);
+    padding: 0 8px;
     background: var(--color-danger);
     color: white;
-    font-size: var(--font-size-xs);
-    font-weight: 700;
-    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 800;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
 }
 
 .viewAllBtn {
-    padding: var(--space-sm) var(--space-md);
+    padding: 10px 20px;
     background: var(--color-primary);
     color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    font-weight: 600;
+    border-radius: var(--radius-lg);
+    font-weight: 700;
     font-size: var(--font-size-sm);
-    cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: all var(--transition-base);
 }
 
 .viewAllBtn:hover {
-    background: var(--color-primary-dark);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 8px 16px var(--color-primary-glow);
 }
 
 .telegramOrders {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
 }
 
 .telegramOrderCard {
-    padding: var(--space-md);
-    background: var(--color-bg-card);
-    border-radius: var(--radius-md);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: var(--space-lg);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-xl);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: all var(--transition-base);
 }
 
 .telegramOrderCard:hover {
-    transform: translateX(4px);
+    transform: translateX(6px);
+    background: rgba(255, 255, 255, 0.05);
     border-color: var(--color-primary);
-    box-shadow: var(--shadow-md);
 }
 
 .orderHeader {
@@ -286,21 +277,24 @@
 .orderNumber {
     display: flex;
     align-items: center;
-    gap: var(--space-xs);
+    gap: var(--space-sm);
     font-size: var(--font-size-md);
-}
-
-.telegramIcon {
-    color: var(--color-info);
+    font-weight: 700;
 }
 
 .orderType {
-    font-size: var(--font-size-sm);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
     color: var(--color-text-muted);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
 }
 
 .orderCustomer {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-md);
+    font-weight: 600;
     color: var(--color-text);
     margin-bottom: var(--space-xs);
 }
@@ -311,30 +305,32 @@
     align-items: center;
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
-    margin-bottom: var(--space-xs);
+    font-weight: 500;
 }
 
 .orderTotal {
-    font-weight: 700;
+    font-weight: 800;
     color: var(--color-primary);
+    font-size: var(--font-size-lg);
 }
 
 .orderTime {
-    font-size: var(--font-size-xs);
-    color: var(--color-text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.3);
     text-align: right;
+    margin-top: var(--space-sm);
 }
 
 .showMoreBtn {
-    padding: var(--space-sm);
+    padding: 12px;
     background: transparent;
     color: var(--color-primary);
-    border: 1px solid var(--color-primary);
-    border-radius: var(--radius-md);
-    font-weight: 600;
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-lg);
+    font-weight: 700;
     font-size: var(--font-size-sm);
-    cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: all var(--transition-base);
 }
 
 .showMoreBtn:hover {
@@ -344,17 +340,22 @@
 
 /* ---------- Responsive ---------- */
 @media (min-width: 768px) {
-    .actionsGrid {
-        grid-template-columns: repeat(4, 1fr);
-    }
-
     .stats {
         grid-template-columns: repeat(3, 1fr);
     }
 
+    .actionsGrid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
     .telegramOrders {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: var(--space-md);
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-lg);
+    }
+
+    .greeting {
+        padding: var(--space-lg) 0;
     }
 }

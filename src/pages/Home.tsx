@@ -69,14 +69,15 @@ export function Home() {
     const quickActions = [
         {
             icon: LayoutGrid,
-            label: 'Nuevo Pedido Mesa',
+            label: 'Mesas',
             color: 'primary',
             onClick: () => navigate('/tables')
         },
         {
             icon: Truck,
-            label: 'Nuevo Domicilio',
-            color: 'orders?type=delivery'
+            label: 'Domicilio',
+            color: 'secondary',
+            onClick: () => navigate('/orders?type=delivery')
         },
         {
             icon: ShoppingCart,
@@ -86,7 +87,7 @@ export function Home() {
         },
         {
             icon: ChefHat,
-            label: 'Ver Cocina',
+            label: 'Cocina',
             color: 'warning',
             onClick: () => navigate('/kitchen')
         }

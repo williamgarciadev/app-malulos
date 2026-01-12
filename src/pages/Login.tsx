@@ -33,23 +33,25 @@ export function Login() {
         <div className={styles.loginPage}>
             <div className={styles.container}>
                 <div className={styles.header}>
-                    <div className={styles.logo}>🍔</div>
+                    <img src="/images/logo.png" alt="Malulos Logo" className={styles.logoImage} />
                     <h1 className={styles.title}>Malulos POS</h1>
-                    <p className={styles.subtitle}>Ingresa tu PIN de acceso</p>
+                    <p className={styles.subtitle}>Panel de Control</p>
                 </div>
 
-                <PinPad
-                    onComplete={handlePinComplete}
-                    error={error}
-                    loading={loading}
-                />
+                <div className="w-full animate-slideUp">
+                    <PinPad
+                        onComplete={handlePinComplete}
+                        error={error}
+                        loading={loading}
+                    />
+                </div>
 
                 {error && (
-                    <p className={styles.errorMsg}>PIN incorrecto. Intenta de nuevo.</p>
+                    <p className={styles.errorMsg}>⚠️ PIN Incorrecto</p>
                 )}
 
                 <div className={styles.footer}>
-                    <p>Demo: 1234 (Admin) | 2222 (Cajero) | 3333 (Mesero)</p>
+                    <p>Malulos System v2.0</p>
                 </div>
             </div>
         </div>

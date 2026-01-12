@@ -3,7 +3,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-bg);
+    background: url('/images/login-bg.png') no-repeat center center;
+    background-size: cover;
     padding: var(--space-lg);
     position: relative;
     overflow: hidden;
@@ -12,32 +13,29 @@
 .loginPage::before {
     content: '';
     position: absolute;
-    top: -10%;
-    left: -10%;
-    width: 40%;
-    height: 40%;
-    background: radial-gradient(circle, rgba(255, 107, 53, 0.1) 0%, transparent 70%);
-    filter: blur(60px);
-}
-
-.loginPage::after {
-    content: '';
-    position: absolute;
-    bottom: -10%;
-    right: -10%;
-    width: 50%;
-    height: 50%;
-    background: radial-gradient(circle, rgba(78, 205, 196, 0.08) 0%, transparent 70%);
-    filter: blur(80px);
+    inset: 0;
+    background: radial-gradient(circle at 70% 30%, rgba(249, 115, 22, 0.15), transparent 50%),
+        radial-gradient(circle at 30% 70%, rgba(45, 212, 191, 0.1), transparent 50%),
+        rgba(7, 7, 8, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 0;
 }
 
 .container {
     width: 100%;
-    max-width: 400px;
+    max-width: 440px;
     display: flex;
     flex-direction: column;
     align-items: center;
     z-index: 1;
+    padding: var(--space-xl);
+    background: rgba(24, 24, 27, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.6s ease-out;
 }
 
 .header {
@@ -45,49 +43,63 @@
     margin-bottom: var(--space-xl);
 }
 
-.logo {
-    font-size: 64px;
+.logoImage {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
     margin-bottom: var(--space-md);
-    animation: bounce 2s infinite ease-in-out;
+    filter: drop-shadow(0 0 20px rgba(249, 115, 22, 0.4));
+    animation: floating 3s ease-in-out infinite;
+}
+
+.logo {
+    display: none;
 }
 
 .title {
-    font-size: var(--font-size-2xl);
+    font-size: var(--font-size-3xl);
     font-weight: 800;
     margin-bottom: var(--space-xs);
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
 .subtitle {
     color: var(--color-text-muted);
     font-size: var(--font-size-md);
+    font-weight: 500;
 }
 
 .errorMsg {
     margin-top: var(--space-lg);
-    color: var(--color-danger);
-    font-weight: 600;
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius-md);
+    color: #fca5a5;
+    font-weight: 500;
     font-size: var(--font-size-sm);
-    animation: fadeIn 0.3s ease-out;
+    animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
 }
 
 .footer {
     margin-top: var(--space-2xl);
     padding: var(--space-md);
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: var(--radius-md);
-    border: 1px solid rgba(255, 255, 255, 0.05);
     text-align: center;
 }
 
 .footer p {
     font-size: var(--font-size-xs);
-    color: var(--color-text-muted);
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 600;
 }
 
-@keyframes bounce {
+@keyframes floating {
 
     0%,
     100% {
@@ -95,6 +107,30 @@
     }
 
     50% {
-        transform: translateY(-10px);
+        transform: translateY(-15px);
+    }
+}
+
+@keyframes shake {
+
+    10%,
+    90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+
+    20%,
+    80% {
+        transform: translate3d(2px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+
+    40%,
+    60% {
+        transform: translate3d(4px, 0, 0);
     }
 }
