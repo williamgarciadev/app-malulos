@@ -89,6 +89,11 @@ VITE_API_URL=http://192.168.1.100:3000/api
 6) Repartidor inicia entrega -> pasa a "En Ruta".
 7) Al entregar, usar "Confirmar entrega".
 
+## Tags estables
+
+- `stable-2026-01-11`: version estable previa.
+- `stable-2026-01-12`: version estable actual.
+
 ## Mejoras recientes (POS)
 
 - Delivery: flujo completo desde `/orders?type=delivery` con datos obligatorios (nombre/telefono/direccion) y metodo de pago.

@@ -1,5 +1,10 @@
 # Changelog
 
+## Tags estables
+
+- `stable-2026-01-11`: version estable previa.
+- `stable-2026-01-12`: version estable actual.
+
 ## 2026-01-11
 
 ### Backend
