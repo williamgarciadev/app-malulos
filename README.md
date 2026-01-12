@@ -79,6 +79,16 @@ VITE_API_URL=http://192.168.1.100:3000/api
 - `TROUBLESHOOTING.md`: resolucion de problemas
 - `QUICK_REFERENCE.md`: comandos rapidos
 
+## Flujo recomendado (Delivery POS)
+
+1) Ir a `/orders?type=delivery` o usar "Nuevo Domicilio".
+2) Completar datos obligatorios: nombre, telefono, direccion y metodo de pago.
+3) Agregar productos y enviar a cocina.
+4) En Cocina: "Comenzar a Preparar" y luego "Marcar como Listo".
+5) En Delivery: el pedido aparece en "Listos para Recoger".
+6) Repartidor inicia entrega -> pasa a "En Ruta".
+7) Al entregar, usar "Confirmar entrega".
+
 ## Mejoras recientes (POS)
 
 - Delivery: flujo completo desde `/orders?type=delivery` con datos obligatorios (nombre/telefono/direccion) y metodo de pago.
