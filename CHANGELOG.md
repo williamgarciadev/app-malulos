@@ -41,3 +41,13 @@
 ### Datos/Tipos
 - `guestCount` en ordenes y tickets de cocina.
 - `telegramId` en tipo de cliente.
+
+## 2026-01-13 (v2.1.0)
+
+### Frontend
+- Login mas accesible: teclado en PIN, mensaje de error claro, logo centrado, mejor contraste y respeto de reduced motion.
+- Navegacion mobile con scroll horizontal para roles admin.
+- Pedidos: modal de producto compacto con boton Agregar fijo, acciones mobile mas faciles de tocar.
+- Envio a cocina sin espera percibida y retorno automatico a Mesas.
+- Modal de pago optimizado para pantallas bajas, evitando scroll innecesario.
+- Ajustes visuales generales en Home, Kitchen, Tables y Delivery.
