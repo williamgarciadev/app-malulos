@@ -77,6 +77,7 @@ export const initSchema = async () => {
             type TEXT NOT NULL CHECK(type IN ('dine-in', 'takeout', 'delivery')),
             tableId INTEGER REFERENCES restaurantTables(id) ON DELETE SET NULL,
             tableName TEXT,
+            guestCount INTEGER,
             customerId INTEGER REFERENCES customers(id) ON DELETE SET NULL,
             customerName TEXT,
             customerPhone TEXT,
@@ -216,7 +217,18 @@ export const initSchema = async () => {
             console.log('ℹ️  Constraint de status ya está actualizado.');
         }
 
-        // Migracion 4: Actualizar constraint de roles en users
+        // Migracion 4: Agregar guestCount en orders
+        try {
+            await query(`
+                ALTER TABLE orders
+                ADD COLUMN IF NOT EXISTS guestCount INTEGER
+            `);
+            console.log('?? Migracion 4: guestCount agregado en orders.');
+        } catch (err) {
+            console.log('??  guestCount ya existe en orders.');
+        }
+
+        // Migracion 5: Actualizar constraint de roles en users
         try {
             await query(`
                 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check
@@ -226,7 +238,7 @@ export const initSchema = async () => {
                 ADD CONSTRAINT users_role_check
                 CHECK (role IN ('admin', 'cashier', 'waiter', 'delivery'))
             `);
-            console.log('?? Migracion 4: Constraint de roles actualizado.');
+            console.log('?? Migracion 5: Constraint de roles actualizado.');
         } catch (err) {
             console.log('??  Constraint de roles ya esta actualizado.');
         }

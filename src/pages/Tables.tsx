@@ -3,23 +3,30 @@ import { useNavigate } from 'react-router-dom'
 import { fetchApi } from '@/services/api'
 import { usePolling } from '@/hooks/usePolling'
 import { useToast } from '@/context/ToastContext'
-import { Users, Receipt, Plus, Loader2 } from 'lucide-react'
+import { Users, Receipt, Plus, Loader2, ArrowRightLeft } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
 import { PaymentModal } from '@/components/payment/PaymentModal'
 import type { TableStatus, RestaurantTable, Order } from '@/types'
 import styles from './Tables.module.css'
 
-const statusLabels: Record<TableStatus, string> = {
+type TableDisplayStatus = TableStatus | 'kitchen' | 'ready'
+
+const displayStatusLabels: Record<TableDisplayStatus, string> = {
     available: 'Disponible',
     occupied: 'Ocupada',
     paying: 'Por Pagar',
-    reserved: 'Reservada'
+    reserved: 'Reservada',
+    kitchen: 'En Cocina',
+    ready: 'Listo'
 }
 
-const statusColors: Record<TableStatus, string> = {
+const displayStatusColors: Record<TableDisplayStatus, string> = {
     available: 'success',
-    occupied: 'warning',
+    occupied: 'info',
     paying: 'danger',
-    reserved: 'info'
+    reserved: 'info',
+    kitchen: 'warning',
+    ready: 'success'
 }
 
 export function Tables() {
@@ -30,6 +37,14 @@ export function Tables() {
     const [isLoading, setIsLoading] = useState(true)
     const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null)
     const [orderToPay, setOrderToPay] = useState<Order | null>(null)
+    const [openTable, setOpenTable] = useState<RestaurantTable | null>(null)
+    const [guestCount, setGuestCount] = useState(2)
+    const [isOpening, setIsOpening] = useState(false)
+    const [transferTable, setTransferTable] = useState<RestaurantTable | null>(null)
+    const [transferTargetId, setTransferTargetId] = useState<number | null>(null)
+
+    const { hasPermission } = useAuthStore()
+    const canTransfer = hasPermission('canManageCash')
 
     const loadData = useCallback(async () => {
         try {
@@ -60,9 +75,32 @@ export function Tables() {
         return activeOrders?.find(o => o.tableId === table.id)
     }
 
+    const getDisplayStatus = (table: RestaurantTable, order: Order | null): TableDisplayStatus => {
+        if (table.status === 'paying') return 'paying'
+        if (table.status === 'reserved') return 'reserved'
+        if (!order) return table.status
+        if (order.status === 'ready') return 'ready'
+        if (['pending', 'confirmed', 'preparing'].includes(order.status)) return 'kitchen'
+        return table.status
+    }
+
+    const getElapsedLabel = (order: Order) => {
+        const baseTime = order.confirmedAt || order.createdAt
+        const start = new Date(baseTime)
+        if (Number.isNaN(start.getTime())) return ''
+        const minutes = Math.floor((Date.now() - start.getTime()) / 60000)
+        if (minutes < 1) return 'Ahora'
+        return `${minutes} min`
+    }
+
+    const handleOpenTable = (table: RestaurantTable) => {
+        setGuestCount(2)
+        setOpenTable(table)
+    }
+
     const handleTableClick = (table: RestaurantTable) => {
         if (table.status === 'available') {
-            navigate(`/orders/${table.id}`)
+            handleOpenTable(table)
         } else if (table.status === 'occupied' || table.status === 'paying') {
             setSelectedTable(table)
         }
@@ -72,6 +110,71 @@ export function Tables() {
         if (selectedTable) {
             navigate(`/orders/${selectedTable.id}`)
             setSelectedTable(null)
+        }
+    }
+
+    const handleConfirmOpenTable = async () => {
+        if (!openTable?.id) return
+        const guests = Math.max(1, Math.min(guestCount, 20))
+
+        setIsOpening(true)
+        try {
+            await fetchApi(`/tables/${openTable.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ status: 'occupied' })
+            })
+
+            navigate(`/orders/${openTable.id}?guests=${guests}`)
+            setOpenTable(null)
+        } catch (error) {
+            console.error('Error opening table:', error)
+            addToast('error', 'Error', 'No se pudo abrir la mesa')
+        } finally {
+            setIsOpening(false)
+        }
+    }
+
+    const handleTransfer = () => {
+        if (!selectedTable) return
+        setTransferTargetId(null)
+        setTransferTable(selectedTable)
+        setSelectedTable(null)
+    }
+
+    const handleConfirmTransfer = async () => {
+        if (!transferTable || !transferTable.id || !transferTargetId) return
+        const order = getTableOrder(transferTable)
+        if (!order?.id) return
+
+        const targetTable = tables.find(t => t.id === transferTargetId)
+        if (!targetTable) return
+
+        try {
+            await fetchApi(`/orders/${order.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    tableId: targetTable.id,
+                    tableName: targetTable.name
+                })
+            })
+
+            await fetchApi(`/tables/${transferTable.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ status: 'available' })
+            })
+
+            await fetchApi(`/tables/${targetTable.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ status: 'occupied' })
+            })
+
+            await loadData()
+            setTransferTable(null)
+            setTransferTargetId(null)
+            addToast('success', 'Mesa transferida', `Pedido movido a ${targetTable.name}`)
+        } catch (error) {
+            console.error('Error transferring table:', error)
+            addToast('error', 'Error', 'No se pudo transferir la mesa')
         }
     }
 
@@ -112,6 +215,8 @@ export function Tables() {
         }).format(price)
     }
 
+    const availableTables = tables.filter(table => table.status === 'available')
+
     if (isLoading && tables.length === 0) {
         return (
             <div className={styles.loadingContainer}>
@@ -126,10 +231,10 @@ export function Tables() {
             <header className={styles.header}>
                 <h1 className={styles.title}>Mesas</h1>
                 <div className={styles.legend}>
-                    {Object.entries(statusLabels).map(([status, label]) => (
+                    {(['available', 'occupied', 'kitchen', 'ready', 'paying', 'reserved'] as TableDisplayStatus[]).map(status => (
                         <div key={status} className={styles.legendItem}>
-                            <span className={`${styles.legendDot} ${styles[statusColors[status as TableStatus]]}`} />
-                            <span>{label}</span>
+                            <span className={`${styles.legendDot} ${styles[displayStatusColors[status]]}`} />
+                            <span>{displayStatusLabels[status]}</span>
                         </div>
                     ))}
                 </div>
@@ -138,10 +243,11 @@ export function Tables() {
             <div className={styles.grid}>
                 {tables.map((table) => {
                     const order = getTableOrder(table)
+                    const displayStatus = getDisplayStatus(table, order)
                     return (
                         <button
                             key={table.id}
-                            className={`${styles.tableCard} ${styles[statusColors[table.status]]}`}
+                            className={`${styles.tableCard} ${styles[displayStatusColors[displayStatus]]}`}
                             onClick={() => handleTableClick(table)}
                         >
                             <span className={styles.tableNumber}>{table.number}</span>
@@ -149,12 +255,18 @@ export function Tables() {
                             <div className={styles.tableInfo}>
                                 <Users size={14} />
                                 <span>{table.capacity}</span>
+                                {order?.guestCount && (
+                                    <span className={styles.tableGuests}>{order.guestCount} pax</span>
+                                )}
                             </div>
                             {order && (
                                 <span className={styles.tableTotal}>{formatPrice(order.total)}</span>
                             )}
-                            <span className={`${styles.tableStatus} ${styles[`status${statusColors[table.status].charAt(0).toUpperCase() + statusColors[table.status].slice(1)}`]}`}>
-                                {statusLabels[table.status]}
+                            {order && (
+                                <span className={styles.tableTime}>{getElapsedLabel(order)}</span>
+                            )}
+                            <span className={`${styles.tableStatus} ${styles[`status${displayStatusColors[displayStatus].charAt(0).toUpperCase() + displayStatusColors[displayStatus].slice(1)}`]}`}>
+                                {displayStatusLabels[displayStatus]}
                             </span>
                         </button>
                     )
@@ -189,12 +301,89 @@ export function Tables() {
                                     <span>Pedir la Cuenta</span>
                                 </button>
                             )}
+
+                            {canTransfer && getTableOrder(selectedTable) && (
+                                <button className={styles.optionBtn} onClick={handleTransfer}>
+                                    <ArrowRightLeft size={20} />
+                                    <span>Transferir Mesa</span>
+                                </button>
+                            )}
                         </div>
 
                         <button
                             className={styles.cancelBtn}
                             onClick={() => setSelectedTable(null)}
                         >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {openTable && (
+                <div className={styles.optionsOverlay} onClick={() => setOpenTable(null)}>
+                    <div className={styles.openModal} onClick={e => e.stopPropagation()}>
+                        <h3 className={styles.optionsTitle}>Abrir {openTable.name}</h3>
+                        <div className={styles.guestControl}>
+                            <button
+                                className={styles.guestBtn}
+                                onClick={() => setGuestCount(count => Math.max(1, count - 1))}
+                                disabled={guestCount <= 1}
+                            >
+                                -
+                            </button>
+                            <div className={styles.guestValue}>
+                                <span>{guestCount}</span>
+                                <span className={styles.guestLabel}>comensales</span>
+                            </div>
+                            <button
+                                className={styles.guestBtn}
+                                onClick={() => setGuestCount(count => Math.min(20, count + 1))}
+                            >
+                                +
+                            </button>
+                        </div>
+                        <button
+                            className={styles.openConfirm}
+                            onClick={handleConfirmOpenTable}
+                            disabled={isOpening}
+                        >
+                            {isOpening ? 'Abriendo...' : 'Iniciar Pedido'}
+                        </button>
+                        <button className={styles.cancelBtn} onClick={() => setOpenTable(null)}>
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {transferTable && (
+                <div className={styles.optionsOverlay} onClick={() => setTransferTable(null)}>
+                    <div className={styles.openModal} onClick={e => e.stopPropagation()}>
+                        <h3 className={styles.optionsTitle}>Transferir {transferTable.name}</h3>
+                        <div className={styles.transferList}>
+                            {availableTables.length === 0 ? (
+                                <span className={styles.transferEmpty}>No hay mesas disponibles</span>
+                            ) : (
+                                availableTables.map(table => (
+                                    <button
+                                        key={table.id}
+                                        className={`${styles.transferBtn} ${transferTargetId === table.id ? styles.transferBtnActive : ''}`}
+                                        onClick={() => setTransferTargetId(table.id!)}
+                                    >
+                                        {table.name}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                        <button
+                            className={styles.openConfirm}
+                            onClick={handleConfirmTransfer}
+                            disabled={!transferTargetId}
+                        >
+                            Confirmar Transferencia
+                        </button>
+                        <button className={styles.cancelBtn} onClick={() => setTransferTable(null)}>
                             Cancelar
                         </button>
                     </div>

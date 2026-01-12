@@ -12,7 +12,9 @@ import {
     Loader2,
     AlertTriangle,
     Printer,
-    Send
+    Send,
+    LayoutGrid,
+    Filter
 } from 'lucide-react'
 import type { Order } from '@/types'
 import styles from './Kitchen.module.css'
@@ -25,6 +27,10 @@ export function Kitchen() {
 
     const [orders, setOrders] = useState<Order[]>([])
     const [isLoading, setIsLoading] = useState(true)
+    const [filter, setFilter] = useState<'all' | 'dine-in' | 'takeout' | 'delivery' | 'telegram'>('all')
+    const [compactView, setCompactView] = useState(false)
+
+    const slaTargetMinutes = 8
 
     const loadOrders = useCallback(async () => {
         try {
@@ -35,7 +41,7 @@ export function Kitchen() {
                 if (!['pending', 'confirmed', 'preparing'].includes(o.status)) return false
                 if (o.origin !== 'telegram') return true
 
-                const isCashOnDelivery = (o.notes || '').includes('[CONTRAENTREGA')
+                const isCashOnDelivery = o.paymentMethod === 'cash' || (o.notes || '').includes('[CONTRAENTREGA')
                 return o.paymentStatus === 'paid' || isCashOnDelivery
             }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
             
@@ -103,8 +109,7 @@ export function Kitchen() {
         if (!order.id) return
 
         try {
-            const effectiveStatus = newStatus === 'ready' && order.type === 'delivery' ? 'on_the_way' : newStatus
-            const updates: Partial<Order> = { status: effectiveStatus }
+            const updates: Partial<Order> = { status: newStatus }
 
             if (newStatus === 'confirmed') {
                 updates.confirmedAt = new Date()
@@ -128,6 +133,29 @@ export function Kitchen() {
         }
     }
 
+    const getBaseTime = (order: Order) => {
+        return order.confirmedAt || order.createdAt
+    }
+
+    const getElapsedMinutes = (order: Order) => {
+        const baseTime = getBaseTime(order)
+        const start = new Date(baseTime)
+        if (Number.isNaN(start.getTime())) return 0
+        return Math.floor((Date.now() - start.getTime()) / 60000)
+    }
+
+    const getTimeClass = (order: Order) => {
+        const minutes = getElapsedMinutes(order)
+        if (minutes >= 10) return styles.timeCritical
+        if (minutes >= 5) return styles.timeWarning
+        return styles.timeOk
+    }
+
+    const isCashOnDelivery = (order: Order) => {
+        if (order.paymentMethod === 'cash' && order.paymentStatus !== 'paid') return true
+        return (order.notes || '').includes('[CONTRAENTREGA]')
+    }
+
     const getTimeElapsed = (date: Date) => {
         const now = new Date()
         // Asegurarse de que date es un objeto Date válido
@@ -138,6 +166,12 @@ export function Kitchen() {
         if (diff < 1) return 'Ahora'
         if (diff === 1) return '1 min'
         return `${diff} min`
+    }
+
+    const getFilteredOrders = () => {
+        if (filter === 'all') return orders
+        if (filter === 'telegram') return orders.filter(order => order.origin === 'telegram')
+        return orders.filter(order => order.type === filter)
     }
 
     const getStatusLabel = (status: Order['status']) => {
@@ -154,8 +188,9 @@ export function Kitchen() {
         return labels[status]
     }
 
-    const pendingOrders = orders.filter(o => o.status === 'pending')
-    const preparingOrders = orders.filter(o => o.status === 'confirmed' || o.status === 'preparing')
+    const filteredOrders = getFilteredOrders()
+    const pendingOrders = filteredOrders.filter(o => o.status === 'pending')
+    const preparingOrders = filteredOrders.filter(o => o.status === 'confirmed' || o.status === 'preparing')
 
     if (isLoading) {
         return (
@@ -167,7 +202,8 @@ export function Kitchen() {
     }
 
     return (
-        <div className={styles.kitchen}>
+        <div className={`${styles.kitchen} ${compactView ? styles.compact : ''}`}>
+
             {/* Header */}
             <header className={styles.header}>
                 <div className={styles.headerLeft}>
@@ -184,6 +220,22 @@ export function Kitchen() {
                 </Link>
             </header>
 
+            <div className={styles.controls}>
+                <div className={styles.filterGroup}>
+                    <button className={`${styles.filterBtn} ${filter === 'all' ? styles.filterActive : ''}`} onClick={() => setFilter('all')}>
+                        <Filter size={14} />
+                        Todos
+                    </button>
+                    <button className={`${styles.filterBtn} ${filter === 'dine-in' ? styles.filterActive : ''}`} onClick={() => setFilter('dine-in')}>Mesa</button>
+                    <button className={`${styles.filterBtn} ${filter === 'takeout' ? styles.filterActive : ''}`} onClick={() => setFilter('takeout')}>Para llevar</button>
+                    <button className={`${styles.filterBtn} ${filter === 'delivery' ? styles.filterActive : ''}`} onClick={() => setFilter('delivery')}>Domicilio</button>
+                    <button className={`${styles.filterBtn} ${filter === 'telegram' ? styles.filterActive : ''}`} onClick={() => setFilter('telegram')}>Telegram</button>
+                </div>
+                <button className={`${styles.compactToggle} ${compactView ? styles.compactActive : ''}`} onClick={() => setCompactView(v => !v)}>
+                    <LayoutGrid size={16} />
+                    {compactView ? 'Normal' : 'Compacto'}
+                </button>
+            </div>
             <div className={styles.columns}>
                 {/* Pendientes */}
                 <section className={styles.column}>
@@ -199,7 +251,8 @@ export function Kitchen() {
                                 <div className={styles.ticketHeader}>
                                     <div className={styles.orderMeta}>
                                         <span className={styles.orderNumber}>Pedido {order.orderNumber}</span>
-                                        <span className={styles.orderTime}>{getTimeElapsed(order.createdAt)}</span>
+                                        <span className={`${styles.orderTime} ${getTimeClass(order)}`}>{getTimeElapsed(getBaseTime(order))}</span>
+                                        <span className={styles.slaBadge}>Objetivo {slaTargetMinutes}m</span>
                                         {order.origin === 'telegram' && (
                                             <span className={styles.telegramBadge} title="Pedido desde Telegram">
                                                 <Send size={12} /> Telegram
@@ -208,7 +261,7 @@ export function Kitchen() {
                                     </div>
                                     <button 
                                         className={styles.printTicketBtn}
-                                        onClick={() => generateKitchenTicket(order)}
+                                        onClick={() => { if (confirm('Reimprimir comanda?')) generateKitchenTicket(order) }}
                                         title="Reimprimir comanda"
                                     >
                                         <Printer size={18} />
@@ -227,9 +280,13 @@ export function Kitchen() {
                                     {order.customerName && (
                                         <span className={styles.customerName}>{order.customerName}</span>
                                     )}
+                                    {isCashOnDelivery(order) && (
+                                        <span className={styles.codBadge}>Contraentrega</span>
+                                    )}
                                 </div>
 
-                                <ul className={styles.itemsList}>
+                                {!compactView && (
+                                    <ul className={styles.itemsList}>
                                     {order.items.map((item, index) => (
                                         <li key={`${order.id}-${item.id}-${index}`} className={styles.item}>
                                             <span className={styles.itemQty}>{item.quantity}x</span>
@@ -256,7 +313,8 @@ export function Kitchen() {
                                             </div>
                                         </li>
                                     ))}
-                                </ul>
+                                    </ul>
+                                )}
 
                                 <button
                                     className={styles.actionBtn}
@@ -291,9 +349,8 @@ export function Kitchen() {
                                 <div className={styles.ticketHeader}>
                                     <div className={styles.orderMeta}>
                                         <span className={styles.orderNumber}>Pedido {order.orderNumber}</span>
-                                        <span className={`${styles.orderTime} ${styles.timeWarning}`}>
-                                            {getTimeElapsed(order.createdAt)}
-                                        </span>
+                                        <span className={`${styles.orderTime} ${getTimeClass(order)}`}>{getTimeElapsed(getBaseTime(order))}</span>
+                                        <span className={styles.slaBadge}>Objetivo {slaTargetMinutes}m</span>
                                         {order.origin === 'telegram' && (
                                             <span className={styles.telegramBadge} title="Pedido desde Telegram">
                                                 <Send size={12} /> Telegram
@@ -302,7 +359,7 @@ export function Kitchen() {
                                     </div>
                                     <button 
                                         className={styles.printTicketBtn}
-                                        onClick={() => generateKitchenTicket(order)}
+                                        onClick={() => { if (confirm('Reimprimir comanda?')) generateKitchenTicket(order) }}
                                         title="Reimprimir comanda"
                                     >
                                         <Printer size={18} />
@@ -315,12 +372,14 @@ export function Kitchen() {
                                         {order.type === 'delivery' && '🛵 Domicilio'}
                                         {order.type === 'takeout' && '🛍️ Para llevar'}
                                     </span>
-                                    <span className={`${styles.statusBadge} ${styles.statusPreparing}`}>
-                                        {getStatusLabel(order.status)}
-                                    </span>
+                                    <span className={`${styles.statusBadge} ${styles.statusPreparing}`}>{getStatusLabel(order.status)}</span>
+                                    {isCashOnDelivery(order) && (
+                                        <span className={styles.codBadge}>Contraentrega</span>
+                                    )}
                                 </div>
 
-                                <ul className={styles.itemsList}>
+                                {!compactView && (
+                                    <ul className={styles.itemsList}>
                                     {order.items.map((item, index) => (
                                         <li key={`${order.id}-${item.id}-${index}`} className={styles.item}>
                                             <span className={styles.itemQty}>{item.quantity}x</span>
@@ -347,7 +406,8 @@ export function Kitchen() {
                                             </div>
                                         </li>
                                     ))}
-                                </ul>
+                                    </ul>
+                                )}
 
                                 <button
                                     className={`${styles.actionBtn} ${styles.actionReady}`}

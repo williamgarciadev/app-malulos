@@ -113,6 +113,13 @@ export const generateKitchenTicket = (order: Order) => {
     doc.text(typeLabel, width / 2, y, { align: 'center' })
 
     y += 6
+    if (order.guestCount) {
+        doc.setFontSize(9)
+        doc.text(`Comensales: ${order.guestCount}`, width / 2, y, { align: 'center' })
+        y += 5
+    }
+
+    y += 1
     doc.setFontSize(8)
     doc.setFont('helvetica', 'normal')
     doc.text(`Hora: ${new Date().toLocaleTimeString()}`, width / 2, y, { align: 'center' })

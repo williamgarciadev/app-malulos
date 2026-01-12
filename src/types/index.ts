@@ -95,6 +95,7 @@ export interface Customer {
     phone: string
     address: string
     notes?: string
+    telegramId?: string
     createdAt: Date
     lastOrderAt?: Date
 }
@@ -125,6 +126,7 @@ export interface Order {
     type: OrderType
     tableId?: number
     tableName?: string
+    guestCount?: number
     customerId?: number
     customerName?: string
     customerPhone?: string

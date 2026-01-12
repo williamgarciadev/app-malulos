@@ -4,6 +4,7 @@ import { fetchApi } from '@/services/api'
 import { useCartStore } from '@/stores/cartStore'
 import { useToast } from '@/context/ToastContext'
 import { generateKitchenTicket } from '@/services/ticketService'
+import { getNotePresetsForCategory } from '@/config/notePresets'
 import {
     Plus,
     Minus,
@@ -14,7 +15,7 @@ import {
     X,
     Loader2
 } from 'lucide-react'
-import type { Product, ProductSize, Modifier, Category, RestaurantTable } from '@/types'
+import type { Product, ProductSize, Modifier, Category, RestaurantTable, Order, PaymentMethod } from '@/types'
 import styles from './Orders.module.css'
 
 export function Orders() {
@@ -33,8 +34,53 @@ export function Orders() {
     const [notes, setNotes] = useState('')
     const [showCart, setShowCart] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
+    const [topProducts, setTopProducts] = useState<Product[]>([])
+    const [addOnProducts, setAddOnProducts] = useState<Product[]>([])
+    const [deliveryPaymentMethod, setDeliveryPaymentMethod] = useState<PaymentMethod>('cash')
+    const [printKitchenTicket, setPrintKitchenTicket] = useState<boolean>(() => {
+        if (typeof window === 'undefined') return true
+        const stored = window.localStorage.getItem('malulos-print-kitchen')
+        return stored ? stored === 'true' : true
+    })
 
     const cart = useCartStore()
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        window.localStorage.setItem('malulos-print-kitchen', String(printKitchenTicket))
+    }, [printKitchenTicket])
+
+    const buildTopProducts = async (products: Product[]) => {
+        try {
+            const orders = await fetchApi<Order[]>('/orders?status=completed')
+            const sortedOrders = [...orders].sort((a, b) => {
+                const aTime = a.completedAt ? new Date(a.completedAt).getTime() : 0
+                const bTime = b.completedAt ? new Date(b.completedAt).getTime() : 0
+                return bTime - aTime
+            }).slice(0, 100)
+
+            const counts = new Map<number, number>()
+            sortedOrders.forEach(order => {
+                order.items.forEach(item => {
+                    counts.set(item.productId, (counts.get(item.productId) || 0) + item.quantity)
+                })
+            })
+
+            const top = [...counts.entries()]
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 6)
+                .map(([productId]) => products.find(p => p.id === productId))
+                .filter((p): p is Product => Boolean(p))
+
+            if (top.length > 0) {
+                setTopProducts(top)
+            } else {
+                setTopProducts(products.slice(0, 6))
+            }
+        } catch (error) {
+            setTopProducts(products.slice(0, 6))
+        }
+    }
 
     // Cargar datos iniciales
     useEffect(() => {
@@ -47,11 +93,21 @@ export function Orders() {
                 
                 const activeCats = catsData.filter(c => c.isActive).sort((a, b) => a.order - b.order)
                 setCategories(activeCats)
-                setAllProducts(prodsData.filter(p => p.isActive))
+                const activeProducts = prodsData.filter(p => p.isActive)
+                setAllProducts(activeProducts)
 
                 if (activeCats.length > 0) {
                     setSelectedCategory(activeCats[0].id!)
                 }
+
+                const addOnCategory = activeCats.find(cat => cat.name.toLowerCase().includes('adicional'))
+                if (addOnCategory) {
+                    setAddOnProducts(activeProducts.filter(p => p.categoryId === addOnCategory.id).slice(0, 8))
+                } else {
+                    setAddOnProducts([])
+                }
+
+                await buildTopProducts(activeProducts)
             } catch (error) {
                 console.error('Error loading menu data:', error)
             } finally {
@@ -64,13 +120,48 @@ export function Orders() {
     // Configurar tipo de pedido y mesa
     useEffect(() => {
         const type = searchParams.get('type')
+        const guestsParam = searchParams.get('guests')
+        const customerIdParam = searchParams.get('customerId')
+        const customerNameParam = searchParams.get('name')
+        const customerPhoneParam = searchParams.get('phone')
+        const customerAddressParam = searchParams.get('address')
+
+        const parsedCustomerId = customerIdParam ? Number(customerIdParam) : null
+        const hasCustomerParams = Boolean(
+            customerNameParam ||
+            customerPhoneParam ||
+            customerAddressParam ||
+            (customerIdParam && Number.isFinite(parsedCustomerId))
+        )
+
         if (type === 'delivery') {
             cart.setOrderType('delivery')
+            cart.setTable(null)
+            if (hasCustomerParams) {
+                cart.setCustomer(
+                    customerNameParam || '',
+                    customerPhoneParam || '',
+                    customerAddressParam || '',
+                    Number.isFinite(parsedCustomerId) ? parsedCustomerId : null
+                )
+            } else {
+                cart.setCustomer('', '', '', null)
+            }
         } else if (type === 'takeout') {
             cart.setOrderType('takeout')
+            cart.setTable(null)
+            cart.setCustomer('', '', '', null)
         } else if (tableId) {
             cart.setOrderType('dine-in')
             cart.setTable(parseInt(tableId))
+            cart.setCustomer('', '', '', null)
+        }
+
+        if (guestsParam) {
+            const guests = Number(guestsParam)
+            cart.setGuestCount(Number.isFinite(guests) ? guests : null)
+        } else if (!tableId) {
+            cart.setGuestCount(null)
         }
     }, [tableId, searchParams])
 
@@ -97,6 +188,20 @@ export function Orders() {
         })
     }
 
+    const getNoteTokens = (value: string) => {
+        return value
+            .split(',')
+            .map(token => token.trim())
+            .filter(Boolean)
+    }
+
+    const handleToggleNotePreset = (preset: string) => {
+        const tokens = getNoteTokens(notes)
+        const exists = tokens.includes(preset)
+        const next = exists ? tokens.filter(token => token !== preset) : [...tokens, preset]
+        setNotes(next.join(', '))
+    }
+
     const handleAddToCart = () => {
         if (!selectedProduct) return
 
@@ -115,6 +220,12 @@ export function Orders() {
 
     const handleSendOrder = async () => {
         if (cart.items.length === 0) return
+        if (cart.orderType === 'delivery') {
+            if (!cart.customerName.trim() || !cart.customerPhone.trim() || !cart.customerAddress.trim()) {
+                addToast('error', 'Faltan datos', 'Completa nombre, telefono y direccion para el delivery')
+                return
+            }
+        }
 
         try {
             let tableName = undefined
@@ -132,6 +243,8 @@ export function Orders() {
                 type: cart.orderType,
                 tableId: tableId ? parseInt(tableId) : undefined,
                 tableName,
+                guestCount: cart.guestCount || undefined,
+                customerId: cart.customerId || undefined,
                 customerName: cart.customerName || undefined,
                 customerPhone: cart.customerPhone || undefined,
                 customerAddress: cart.customerAddress || undefined,
@@ -154,8 +267,10 @@ export function Orders() {
                 total: cart.getTotal(),
                 status: 'pending',
                 paymentStatus: 'pending',
+                paymentMethod: cart.orderType === 'delivery' ? deliveryPaymentMethod : undefined,
                 paidAmount: 0,
-                createdAt: new Date()
+                createdAt: new Date(),
+                confirmedAt: new Date()
             }
 
             // 1. Crear Orden y obtener respuesta
@@ -178,7 +293,7 @@ export function Orders() {
             const realOrderNumber = createdOrder?.orderNumber || 'Nueva';
             
             // IMPRIMIR COMANDA
-            if (createdOrder) {
+            if (createdOrder && printKitchenTicket) {
                 generateKitchenTicket(createdOrder);
             }
 
@@ -207,6 +322,25 @@ export function Orders() {
         return price * quantity
     }
 
+    const noteTokens = getNoteTokens(notes)
+    const canSend = cart.items.length > 0
+    const selectedCategoryName = selectedProduct
+        ? categories.find(cat => cat.id === selectedProduct.categoryId)?.name
+        : undefined
+    const notePresets = getNotePresetsForCategory(selectedCategoryName)
+    const deliveryComplete = Boolean(
+        cart.customerName.trim() &&
+        cart.customerPhone.trim() &&
+        cart.customerAddress.trim()
+    )
+    const [deliveryExpanded, setDeliveryExpanded] = useState(true)
+
+    useEffect(() => {
+        if (cart.orderType === 'delivery') {
+            setDeliveryExpanded(!deliveryComplete)
+        }
+    }, [cart.orderType, deliveryComplete])
+
     if (isLoading) {
         return (
             <div className={styles.loadingContainer}>
@@ -225,7 +359,7 @@ export function Orders() {
                 </button>
                 <div className={styles.headerInfo}>
                     <h1 className={styles.title}>
-                        {cart.orderType === 'dine-in' && tableId && `Mesa ${tableId}`}
+                        {cart.orderType === 'dine-in' && tableId && `Mesa ${tableId}${cart.guestCount ? ` · ${cart.guestCount} pax` : ''}`}
                         {cart.orderType === 'delivery' && 'Domicilio'}
                         {cart.orderType === 'takeout' && 'Para Llevar'}
                     </h1>
@@ -242,6 +376,98 @@ export function Orders() {
                 </button>
             </header>
 
+            {cart.orderType === 'delivery' && (
+                <section className={`${styles.deliveryBar} ${!deliveryComplete ? styles.deliveryBarWarning : ''}`}>
+                    <div className={styles.deliveryBarHeader}>
+                        <span>Datos de entrega</span>
+                        {deliveryComplete && (
+                            <button
+                                type="button"
+                                className={styles.deliveryToggle}
+                                onClick={() => setDeliveryExpanded((prev) => !prev)}
+                            >
+                                {deliveryExpanded ? 'Minimizar' : 'Editar'}
+                            </button>
+                        )}
+                    </div>
+                    {deliveryExpanded ? (
+                        <div className={styles.deliveryGrid}>
+                            <div className={styles.deliveryField}>
+                                <label>Nombre</label>
+                                <input
+                                    type="text"
+                                    value={cart.customerName}
+                                    onChange={(e) => cart.setCustomer(
+                                        e.target.value,
+                                        cart.customerPhone,
+                                        cart.customerAddress,
+                                        cart.customerId
+                                    )}
+                                    placeholder="Nombre del cliente"
+                                />
+                            </div>
+                            <div className={styles.deliveryField}>
+                                <label>Telefono</label>
+                                <input
+                                    type="tel"
+                                    value={cart.customerPhone}
+                                    onChange={(e) => cart.setCustomer(
+                                        cart.customerName,
+                                        e.target.value,
+                                        cart.customerAddress,
+                                        cart.customerId
+                                    )}
+                                    placeholder="Ej: 3001234567"
+                                />
+                            </div>
+                            <div className={`${styles.deliveryField} ${styles.deliveryFull}`}>
+                                <label>Direccion</label>
+                                <textarea
+                                    rows={2}
+                                    value={cart.customerAddress}
+                                    onChange={(e) => cart.setCustomer(
+                                        cart.customerName,
+                                        cart.customerPhone,
+                                        e.target.value,
+                                        cart.customerId
+                                    )}
+                                    placeholder="Direccion completa"
+                                />
+                            </div>
+                            <div className={`${styles.deliveryField} ${styles.deliveryFull}`}>
+                                <label>Metodo de pago</label>
+                                <select
+                                    value={deliveryPaymentMethod}
+                                    onChange={(e) => setDeliveryPaymentMethod(e.target.value as PaymentMethod)}
+                                >
+                                    <option value="cash">Contraentrega</option>
+                                    <option value="nequi">Nequi</option>
+                                    <option value="daviplata">DaviPlata</option>
+                                    <option value="transfer">Transferencia</option>
+                                    <option value="card">Tarjeta</option>
+                                </select>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className={styles.deliverySummary}>
+                            <div className={styles.deliverySummaryRow}>
+                                <span>{cart.customerName}</span>
+                                <span>{cart.customerPhone}</span>
+                            </div>
+                            <div className={styles.deliverySummaryRow}>
+                                <span className={styles.deliverySummaryAddress}>{cart.customerAddress}</span>
+                                <span className={styles.deliverySummaryMethod}>{deliveryPaymentMethod === 'cash' ? 'Contraentrega' : deliveryPaymentMethod.toUpperCase()}</span>
+                            </div>
+                        </div>
+                    )}
+                    {!deliveryComplete && (
+                        <div className={styles.deliveryHint}>
+                            Completa nombre, telefono y direccion para enviar a cocina.
+                        </div>
+                    )}
+                </section>
+            )}
+
             {/* Categories */}
             <nav className={styles.categories}>
                 {categories.map(cat => (
@@ -255,6 +481,52 @@ export function Orders() {
                     </button>
                 ))}
             </nav>
+
+            {topProducts.length > 0 && (
+                <section className={styles.quickSection}>
+                    <div className={styles.quickHeader}>
+                        <span>Top vendidos</span>
+                    </div>
+                    <div className={styles.quickRow}>
+                        {topProducts.map(product => (
+                            <button
+                                key={product.id}
+                                className={styles.quickItem}
+                                onClick={() => handleProductClick(product)}
+                            >
+                                <span className={styles.quickEmoji}>
+                                    {product.isCombo ? 'Combo' : categories.find(c => c.id === product.categoryId)?.icon}
+                                </span>
+                                <span className={styles.quickName}>{product.name}</span>
+                                <span className={styles.quickPrice}>{formatPrice(product.basePrice)}</span>
+                            </button>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {addOnProducts.length > 0 && (
+                <section className={styles.quickSection}>
+                    <div className={styles.quickHeader}>
+                        <span>Adicionales recomendados</span>
+                    </div>
+                    <div className={styles.quickRow}>
+                        {addOnProducts.map(product => (
+                            <button
+                                key={product.id}
+                                className={styles.quickItem}
+                                onClick={() => handleProductClick(product)}
+                            >
+                                <span className={styles.quickEmoji}>
+                                    {categories.find(c => c.id === product.categoryId)?.icon}
+                                </span>
+                                <span className={styles.quickName}>{product.name}</span>
+                                <span className={styles.quickPrice}>{formatPrice(product.basePrice)}</span>
+                            </button>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* Products Grid */}
             <div className={styles.productsGrid}>
@@ -356,6 +628,18 @@ export function Orders() {
                         {/* Notes */}
                         <div className={styles.modalSection}>
                             <h3 className={styles.sectionTitle}>Notas / Instrucciones</h3>
+                            <div className={styles.notesPresets}>
+                                {notePresets.map(preset => (
+                                    <button
+                                        key={preset}
+                                        type="button"
+                                        className={`${styles.presetBtn} ${noteTokens.includes(preset) ? styles.presetActive : ''}`}
+                                        onClick={() => handleToggleNotePreset(preset)}
+                                    >
+                                        {preset}
+                                    </button>
+                                ))}
+                            </div>
                             <textarea
                                 className={styles.notesInput}
                                 placeholder="Ej: Sin cebolla, Salsa aparte..."
@@ -393,6 +677,68 @@ export function Orders() {
                             </div>
                         ) : (
                             <>
+                                {cart.orderType === 'delivery' && (
+                                    <div className={styles.deliverySection}>
+                                        <h3 className={styles.deliveryTitle}>Datos de entrega</h3>
+                                        <div className={styles.deliveryGrid}>
+                                            <div className={styles.deliveryField}>
+                                                <label>Nombre</label>
+                                                <input
+                                                    type="text"
+                                                    value={cart.customerName}
+                                                    onChange={(e) => cart.setCustomer(
+                                                        e.target.value,
+                                                        cart.customerPhone,
+                                                        cart.customerAddress,
+                                                        cart.customerId
+                                                    )}
+                                                    placeholder="Nombre del cliente"
+                                                />
+                                            </div>
+                                            <div className={styles.deliveryField}>
+                                                <label>Telefono</label>
+                                                <input
+                                                    type="tel"
+                                                    value={cart.customerPhone}
+                                                    onChange={(e) => cart.setCustomer(
+                                                        cart.customerName,
+                                                        e.target.value,
+                                                        cart.customerAddress,
+                                                        cart.customerId
+                                                    )}
+                                                    placeholder="Ej: 3001234567"
+                                                />
+                                            </div>
+                                            <div className={`${styles.deliveryField} ${styles.deliveryFull}`}>
+                                                <label>Direccion</label>
+                                                <textarea
+                                                    rows={2}
+                                                    value={cart.customerAddress}
+                                                    onChange={(e) => cart.setCustomer(
+                                                        cart.customerName,
+                                                        cart.customerPhone,
+                                                        e.target.value,
+                                                        cart.customerId
+                                                    )}
+                                                    placeholder="Direccion completa"
+                                                />
+                                            </div>
+                                            <div className={`${styles.deliveryField} ${styles.deliveryFull}`}>
+                                                <label>Metodo de pago</label>
+                                                <select
+                                                    value={deliveryPaymentMethod}
+                                                    onChange={(e) => setDeliveryPaymentMethod(e.target.value as PaymentMethod)}
+                                                >
+                                                    <option value="cash">Contraentrega</option>
+                                                    <option value="nequi">Nequi</option>
+                                                    <option value="daviplata">DaviPlata</option>
+                                                    <option value="transfer">Transferencia</option>
+                                                    <option value="card">Tarjeta</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className={styles.cartItems}>
                                     {cart.items.map(item => (
                                         <div key={item.id} className={styles.cartItem}>
@@ -430,20 +776,42 @@ export function Orders() {
                                 </div>
 
                                 <div className={styles.cartFooter}>
-                                    <div className={styles.cartTotal}>
-                                        <span>Total</span>
-                                        <span className={styles.cartTotalPrice}>{formatPrice(cart.getTotal())}</span>
-                                    </div>
-                                    <button className={styles.sendBtn} onClick={handleSendOrder}>
-                                        <Send size={20} />
-                                        <span>Enviar a Cocina</span>
-                                    </button>
+                                <div className={styles.cartTotal}>
+                                    <span>Total</span>
+                                    <span className={styles.cartTotalPrice}>{formatPrice(cart.getTotal())}</span>
+                                </div>
+                                <label className={styles.printToggle}>
+                                    <input
+                                        type="checkbox"
+                                        checked={printKitchenTicket}
+                                        onChange={(e) => setPrintKitchenTicket(e.target.checked)}
+                                    />
+                                    <span>Imprimir comanda</span>
+                                </label>
+                                <button className={styles.sendBtn} onClick={handleSendOrder} disabled={!canSend}>
+                                    <Send size={20} />
+                                    <span>Enviar a Cocina</span>
+                                </button>
                                 </div>
                             </>
                         )}
                     </div>
                 </div>
             )}
+
+            <div className={styles.mobileActions}>
+                <button className={styles.mobileCartBtn} onClick={() => setShowCart(true)}>
+                    <ShoppingCart size={20} />
+                    <span>Carrito</span>
+                    {cart.items.length > 0 && (
+                        <span className={styles.mobileBadge}>{cart.items.length}</span>
+                    )}
+                </button>
+                <button className={styles.mobileSendBtn} onClick={handleSendOrder} disabled={!canSend}>
+                    <Send size={20} />
+                    <span>Enviar</span>
+                </button>
+            </div>
         </div>
     )
 }

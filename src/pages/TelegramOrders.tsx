@@ -29,7 +29,7 @@ type TabType = 'pending' | 'contraentrega' | 'processed'
 
 export function TelegramOrders() {
     const { addToast } = useToast()
-    const { currentSession, refreshSession } = useCashStore()
+    const { currentSession, refreshSession, checkActiveSession } = useCashStore()
 
     const [allOrders, setAllOrders] = useState<Order[]>([])
     const [activeTab, setActiveTab] = useState<TabType>('pending')
@@ -42,6 +42,8 @@ export function TelegramOrders() {
     const [isConfirming, setIsConfirming] = useState(false)
     const [isCancelling, setIsCancelling] = useState(false)
     const [soundEnabled, setSoundEnabled] = useState(true)
+    const [searchQuery, setSearchQuery] = useState('')
+    const [compactView, setCompactView] = useState(false)
     const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
     const [newOrderIds, setNewOrderIds] = useState<Set<number>>(new Set())
     const [, setTick] = useState(0)
@@ -104,6 +106,10 @@ export function TelegramOrders() {
     }, [soundEnabled, addToast])
 
     useEffect(() => {
+        checkActiveSession()
+    }, [checkActiveSession])
+
+    useEffect(() => {
         loadOrders()
         const interval = setInterval(loadOrders, 10000)
         return () => clearInterval(interval)
@@ -142,6 +148,15 @@ export function TelegramOrders() {
     }
 
     const filteredOrders = getFilteredOrders()
+    const searchLower = searchQuery.trim().toLowerCase()
+    const searchedOrders = searchLower
+        ? filteredOrders.filter(order => {
+            const orderNumber = String(order.orderNumber || '').toLowerCase()
+            const name = (order.customerName || '').toLowerCase()
+            const phone = (order.customerPhone || '').toLowerCase()
+            return orderNumber.includes(searchLower) || name.includes(searchLower) || phone.includes(searchLower)
+        })
+        : filteredOrders
 
     // Conteos para tabs
     const counts = {
@@ -343,6 +358,15 @@ export function TelegramOrders() {
         return date.toLocaleString()
     }
 
+    const getTimeClass = (dateInput: Date | string) => {
+        const now = new Date()
+        const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
+        const diffMins = Math.floor((now.getTime() - date.getTime()) / 60000)
+        if (diffMins >= 10) return styles.timeCritical
+        if (diffMins >= 5) return styles.timeWarning
+        return styles.timeOk
+    }
+
     const isUrgent = (dateInput: Date | string) => {
         const now = new Date()
         const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
@@ -410,6 +434,23 @@ export function TelegramOrders() {
                     </button>
                 </div>
             </header>
+
+            <div className={styles.toolbar}>
+                <div className={styles.searchBox}>
+                    <input
+                        type="text"
+                        placeholder="Buscar por pedido, cliente o telefono"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <button
+                    className={`${styles.compactToggle} ${compactView ? styles.compactActive : ''}`}
+                    onClick={() => setCompactView(value => !value)}
+                >
+                    {compactView ? 'Normal' : 'Compacto'}
+                </button>
+            </div>
 
             {/* Tabs */}
             <div className={styles.tabs}>
@@ -488,7 +529,7 @@ export function TelegramOrders() {
                 </div>
             )}
 
-            {filteredOrders.length === 0 ? (
+            {searchedOrders.length === 0 ? (
                 <div className={styles.emptyState}>
                     <Package size={64} />
                     <h2>
@@ -504,7 +545,9 @@ export function TelegramOrders() {
                 </div>
             ) : (
                 <div className={styles.ordersGrid}>
-                    {filteredOrders.map(order => (
+                    {searchedOrders
+                        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                        .map(order => (
                         <div
                             key={order.id ?? order.orderNumber}
                             className={`${styles.orderCard}
@@ -512,18 +555,16 @@ export function TelegramOrders() {
                                 ${order.id !== undefined && newOrderIds.has(order.id) ? styles.orderCardNew : ''}
                                 ${isUrgent(order.createdAt) && activeTab === 'pending' ? styles.orderCardUrgent : ''}`}
                         >
-                            <div className={styles.orderMain}>
+                            <div className={`${styles.orderMain} ${compactView ? styles.orderMainCompact : ''}`}>
                                 <div className={styles.orderHeader}>
                                     <div>
                                         <h3>#{order.orderNumber}</h3>
                                         <div className={styles.orderTimeRow}>
                                             <Clock size={12} />
-                                            <span className={`${styles.orderTime} ${isUrgent(order.createdAt) && activeTab === 'pending' ? styles.urgent : ''}`}>
+                                            <span className={`${styles.orderTime} ${getTimeClass(order.createdAt)}`}>
                                                 {getTimeAgo(order.createdAt)}
                                             </span>
-                                            {isUrgent(order.createdAt) && activeTab === 'pending' && (
-                                                <AlertTriangle size={14} className={styles.urgentIcon} />
-                                            )}
+                                            <span className={styles.slaBadge}>Objetivo 8m</span>
                                         </div>
                                     </div>
                                     <div className={styles.orderHeaderMeta}>
@@ -583,6 +624,7 @@ export function TelegramOrders() {
                                 )}
                             </div>
 
+                            {!compactView && (
                             <div className={styles.orderItems}>
                                 <h4>Productos:</h4>
                                 {order.items.map((item, idx) => (
@@ -593,6 +635,7 @@ export function TelegramOrders() {
                                     </div>
                                 ))}
                             </div>
+                            )}
 
                             {activeTab === 'pending' && (
                                 <div className={styles.orderActions}>

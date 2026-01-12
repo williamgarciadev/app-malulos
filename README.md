@@ -78,3 +78,11 @@ VITE_API_URL=http://192.168.1.100:3000/api
 - `TESTING.md`: pruebas manuales
 - `TROUBLESHOOTING.md`: resolucion de problemas
 - `QUICK_REFERENCE.md`: comandos rapidos
+
+## Mejoras recientes (POS)
+
+- Delivery: flujo completo desde `/orders?type=delivery` con datos obligatorios (nombre/telefono/direccion) y metodo de pago.
+- Delivery UI: filtros, buscador, semaforo de tiempo, acciones rapidas (copiar direccion, ruta, mapa) y modal de confirmacion mejorado.
+- Cocina: delivery ya no salta directo a "En ruta"; queda en "Listo" para que el repartidor lo inicie.
+- Telegram: sesion de caja se carga al abrir la pantalla para confirmar pagos sin bloqueo.
+- Clientes: acciones rapidas (llamar/whatsapp/mapa), historial rapido, etiquetas Telegram, filtros y vista compacta.

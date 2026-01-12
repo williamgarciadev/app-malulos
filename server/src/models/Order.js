@@ -6,6 +6,7 @@ const ORDER_SELECT_FIELDS = `
     type,
     tableId AS "tableId",
     tableName AS "tableName",
+    guestCount AS "guestCount",
     customerId AS "customerId",
     customerName AS "customerName",
     customerPhone AS "customerPhone",
@@ -96,16 +97,17 @@ export class Order {
 
         const res = await pool.query(`
             INSERT INTO orders (
-                orderNumber, type, tableId, tableName, customerId, customerName,
+                orderNumber, type, tableId, tableName, guestCount, customerId, customerName,
                 customerPhone, customerAddress, items, subtotal, discount, tax, total,
                 status, paymentStatus, paymentMethod, paidAmount, notes, origin
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
             RETURNING ${ORDER_SELECT_FIELDS}
         `, [
             orderNumber,
             data.type,
             data.tableId || null,
             data.tableName || null,
+            data.guestCount || null,
             data.customerId || null,
             data.customerName || null,
             data.customerPhone || null,

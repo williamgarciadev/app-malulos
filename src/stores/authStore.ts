@@ -55,8 +55,14 @@ export const useAuthStore = create<AuthState>()(
             },
 
             hasPermission: (permission: keyof UserPermissions) => {
-                const { permissions } = get()
-                return permissions?.[permission] ?? false
+                const { permissions, user } = get()
+                if (permissions?.[permission] !== undefined) {
+                    return permissions[permission]
+                }
+                if (user?.role && ROLE_PERMISSIONS[user.role]?.[permission] !== undefined) {
+                    return ROLE_PERMISSIONS[user.role][permission]
+                }
+                return false
             }
         }),
         {

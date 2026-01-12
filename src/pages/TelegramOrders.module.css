@@ -896,3 +896,69 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+}
+
+.searchBox {
+    flex: 1;
+}
+
+.searchBox input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-input);
+    color: var(--color-text);
+}
+
+.compactToggle {
+    padding: 8px 12px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-card);
+    font-weight: 700;
+    font-size: var(--font-size-xs);
+}
+
+.compactActive {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.orderMainCompact {
+    padding-bottom: var(--space-sm);
+}
+
+.timeOk {
+    background: rgba(34, 197, 94, 0.18);
+    color: var(--color-success);
+}
+
+.timeWarning {
+    background: rgba(234, 179, 8, 0.18);
+    color: var(--color-warning);
+}
+
+.timeCritical {
+    background: rgba(239, 68, 68, 0.18);
+    color: var(--color-danger);
+}
+
+.slaBadge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-text-muted);
+    margin-left: 6px;
+}

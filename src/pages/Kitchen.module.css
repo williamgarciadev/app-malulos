@@ -382,3 +382,90 @@
         padding: var(--space-lg);
     }
 }
+
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+    justify-content: space-between;
+}
+
+.filterGroup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.filterBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: var(--radius-full);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    color: var(--color-text-muted);
+}
+
+.filterActive {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: rgba(255, 107, 53, 0.12);
+}
+
+.compactToggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: var(--radius-full);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+}
+
+.compactActive {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.timeOk {
+    background: rgba(34, 197, 94, 0.18);
+    color: var(--color-success);
+}
+
+.timeCritical {
+    background: rgba(239, 68, 68, 0.18);
+    color: var(--color-danger);
+}
+
+.slaBadge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-text-muted);
+}
+
+.codBadge {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--color-danger);
+}
+
+.compact .ticket {
+    padding: var(--space-sm);
+}
+
+.compact .ticketInfo {
+    justify-content: space-between;
+}

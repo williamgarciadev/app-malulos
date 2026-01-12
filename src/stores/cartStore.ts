@@ -4,15 +4,18 @@ import type { CartItem, Product, ProductSize, Modifier, ComboSelection } from '@
 interface CartState {
     items: CartItem[]
     tableId: number | null
+    guestCount: number | null
     orderType: 'dine-in' | 'takeout' | 'delivery'
+    customerId: number | null
     customerName: string
     customerPhone: string
     customerAddress: string
 
     // Actions
     setTable: (tableId: number | null) => void
+    setGuestCount: (guestCount: number | null) => void
     setOrderType: (type: 'dine-in' | 'takeout' | 'delivery') => void
-    setCustomer: (name: string, phone: string, address: string) => void
+    setCustomer: (name: string, phone: string, address: string, customerId?: number | null) => void
     addItem: (
         product: Product,
         quantity: number,
@@ -53,16 +56,20 @@ function calculateItemPrice(
 export const useCartStore = create<CartState>((set, get) => ({
     items: [],
     tableId: null,
+    guestCount: null,
     orderType: 'dine-in',
+    customerId: null,
     customerName: '',
     customerPhone: '',
     customerAddress: '',
 
     setTable: (tableId) => set({ tableId }),
+    setGuestCount: (guestCount) => set({ guestCount }),
 
     setOrderType: (type) => set({ orderType: type }),
 
-    setCustomer: (name, phone, address) => set({
+    setCustomer: (name, phone, address, customerId = null) => set({
+        customerId,
         customerName: name,
         customerPhone: phone,
         customerAddress: address
@@ -113,7 +120,9 @@ export const useCartStore = create<CartState>((set, get) => ({
         set({
             items: [],
             tableId: null,
+            guestCount: null,
             orderType: 'dine-in',
+            customerId: null,
             customerName: '',
             customerPhone: '',
             customerAddress: ''
