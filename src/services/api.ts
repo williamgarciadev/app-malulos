@@ -241,10 +241,12 @@ export const cashSessionsApi = {
 // ---------- MOVIMIENTOS DE CAJA ----------
 export const cashMovementsApi = {
     create: (movement: Omit<CashMovement, 'id'>) =>
-        fetchApi<CashMovement>('/cash-movements', {
+        fetchApi<{ movement: CashMovement; session: CashSession }>('/cash-movements', {
             method: 'POST',
             body: JSON.stringify(movement)
-        })
+        }),
+    getBySession: (sessionId: number) =>
+        fetchApi<CashMovement[]>(`/cash-movements?sessionId=${sessionId}`)
 }
 
 // ---------- CLIENTES ----------

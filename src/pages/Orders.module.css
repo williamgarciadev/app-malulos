@@ -21,6 +21,39 @@
     z-index: 10;
 }
 
+.orderTypePicker {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
+    margin: 0 var(--space-md);
+    padding: var(--space-sm);
+    background: var(--color-bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.typeBtn {
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    background: var(--color-bg-input);
+    border: 1px solid transparent;
+    transition: all var(--transition-fast);
+}
+
+.typeBtn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-text);
+}
+
+.typeActive {
+    background: rgba(255, 107, 53, 0.15);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
 .deliveryBar {
     margin: 0 var(--space-md);
     padding: var(--space-md);
@@ -1048,4 +1081,94 @@
         min-height: 48px;
         font-size: var(--font-size-sm);
     }
+}
+
+.pendingPayments {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--color-border);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.pendingPaymentsHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+.pendingPaymentsHeader h2 {
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.pendingPaymentsHeader p {
+    margin-top: 4px;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+.pendingPaymentsCount {
+    min-width: 34px;
+    height: 34px;
+    border-radius: var(--radius-full);
+    background: var(--color-bg-input);
+    color: var(--color-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.pendingPaymentsList {
+    display: grid;
+    gap: var(--space-sm);
+}
+
+.pendingPaymentsItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-input);
+    border: 1px solid var(--color-border);
+}
+
+.pendingPaymentsOrder {
+    display: block;
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.pendingPaymentsMeta {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+.pendingPaymentsTotal {
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--color-danger);
+}
+
+.pendingPaymentsMore {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    text-align: right;
+    padding-right: var(--space-xs);
+}
+
+.pendingPaymentsEmpty {
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    padding: var(--space-sm);
 }

@@ -283,6 +283,9 @@ export function Kitchen() {
                                     {isCashOnDelivery(order) && (
                                         <span className={styles.codBadge}>Contraentrega</span>
                                     )}
+                                    {order.paymentStatus !== 'paid' && !isCashOnDelivery(order) && (
+                                        <span className={styles.paymentPendingBadge}>Pago pendiente</span>
+                                    )}
                                 </div>
 
                                 {!compactView && (
@@ -375,6 +378,9 @@ export function Kitchen() {
                                     <span className={`${styles.statusBadge} ${styles.statusPreparing}`}>{getStatusLabel(order.status)}</span>
                                     {isCashOnDelivery(order) && (
                                         <span className={styles.codBadge}>Contraentrega</span>
+                                    )}
+                                    {order.paymentStatus !== 'paid' && !isCashOnDelivery(order) && (
+                                        <span className={styles.paymentPendingBadge}>Pago pendiente</span>
                                     )}
                                 </div>
 

@@ -248,9 +248,9 @@ export class CashSession {
     static async create(data) {
         const res = await pool.query(`
             INSERT INTO cashSessions (userId, userName, openingAmount, cashSales, cardSales, transferSales, nequiSales, davipplataSales, totalSales, ordersCount, status)
-            VALUES ($1, $2, $3, 0, 0, 0, 0, 0, 0, 0, 'open') RETURNING *
+            VALUES ($1, $2, $3, 0, 0, 0, 0, 0, 0, 0, 'open') RETURNING id
         `, [data.userId, data.userName, data.openingAmount]);
-        return res.rows[0];
+        return this.getById(res.rows[0].id);
     }
 
     static async update(id, data) {
@@ -267,8 +267,8 @@ export class CashSession {
         });
 
         values.push(id);
-        const res = await pool.query(`UPDATE cashSessions SET ${fields.join(', ')} WHERE id = $${i} RETURNING *`, values);
-        return res.rows[0];
+        const res = await pool.query(`UPDATE cashSessions SET ${fields.join(', ')} WHERE id = $${i} RETURNING id`, values);
+        return this.getById(res.rows[0].id);
     }
 
     static async close(id, data) {
@@ -279,10 +279,10 @@ export class CashSession {
         const res = await pool.query(`
             UPDATE cashSessions
             SET closedAt = CURRENT_TIMESTAMP, actualAmount = $1, expectedAmount = $2, difference = $3, notes = $4, status = 'closed'
-            WHERE id = $5 RETURNING *
+            WHERE id = $5 RETURNING id
         `, [data.actualAmount, expectedAmount, difference, data.notes || null, id]);
 
-        return res.rows[0];
+        return this.getById(res.rows[0].id);
     }
 }
 
@@ -303,6 +303,99 @@ export class Config {
             }
         }
         
+// Modelo de Movimientos de Caja
+export class CashMovement {
+    static async getBySession(sessionId) {
+        const res = await pool.query(`
+            SELECT
+                id,
+                sessionId AS "sessionId",
+                type,
+                amount,
+                reason,
+                userId AS "userId",
+                userName AS "userName",
+                createdAt AS "createdAt"
+            FROM cashMovements
+            WHERE sessionId = $1
+            ORDER BY createdAt DESC
+        `, [sessionId]);
+        return res.rows;
+    }
+
+    static async create(data) {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            const sessionRes = await client.query(`
+                SELECT id, status
+                FROM cashSessions
+                WHERE id = $1
+            `, [data.sessionId]);
+
+            const session = sessionRes.rows[0];
+            if (!session) {
+                throw new Error('Sesion de caja no encontrada');
+            }
+            if (session.status !== 'open') {
+                throw new Error('La sesion de caja ya esta cerrada');
+            }
+
+            const movementRes = await client.query(`
+                INSERT INTO cashMovements (sessionId, type, amount, reason, userId, userName)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING *
+            `, [data.sessionId, data.type, data.amount, data.reason, data.userId, data.userName]);
+
+            const adjustment = data.type === 'in' ? data.amount : -data.amount;
+            await client.query(`
+                UPDATE cashSessions
+                SET cashSales = cashSales + $1,
+                    totalSales = totalSales + $1
+                WHERE id = $2
+                RETURNING id
+            `, [adjustment, data.sessionId]);
+
+            const sessionResMapped = await client.query(`
+                SELECT
+                    id,
+                    userId AS "userId",
+                    userName AS "userName",
+                    openedAt AS "openedAt",
+                    closedAt AS "closedAt",
+                    openingAmount AS "openingAmount",
+                    expectedAmount AS "expectedAmount",
+                    actualAmount AS "actualAmount",
+                    difference,
+                    cashSales AS "cashSales",
+                    cardSales AS "cardSales",
+                    transferSales AS "transferSales",
+                    nequiSales AS "nequiSales",
+                    davipplataSales AS "davipplataSales",
+                    totalSales AS "totalSales",
+                    ordersCount AS "ordersCount",
+                    notes,
+                    status
+                FROM cashSessions
+                WHERE id = $1
+            `, [data.sessionId]);
+
+            await client.query('COMMIT');
+
+            return {
+                movement: movementRes.rows[0],
+                session: sessionResMapped.rows[0]
+            };
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+}
+
         export {
             Customer
         };

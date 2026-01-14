@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react'
 import { fetchApi, ordersApi } from '@/services/api'
 import { usePolling } from '@/hooks/usePolling'
 import { useToast } from '@/context/ToastContext'
-import { Order } from '@/types'
+import { Order, CashSession } from '@/types'
 import { Bike, MapPin, Phone, User, CheckCircle, Navigation, Package, DollarSign, Search, Copy } from 'lucide-react'
 import styles from './Delivery.module.css'
 
@@ -47,6 +47,17 @@ export function Delivery() {
             return `https://wa.me/57${digits}`
         }
         return `https://wa.me/${digits}`
+    }
+
+    const getWhatsAppMessageUrl = (order: Order, template: 'on_the_way' | 'delivered') => {
+        if (!order.customerPhone) return ''
+        const digits = normalizePhone(order.customerPhone)
+        if (!digits) return ''
+        const base = digits.length === 10 ? `https://wa.me/57${digits}` : `https://wa.me/${digits}`
+        const message = template === 'on_the_way'
+            ? `Hola ${order.customerName || ''}, tu pedido ${order.orderNumber} va en camino.`
+            : `Hola ${order.customerName || ''}, tu pedido ${order.orderNumber} fue entregado. Gracias.`
+        return `${base}?text=${encodeURIComponent(message.trim())}`
     }
 
     const getMapsUrl = (address: string) => {
@@ -138,16 +149,39 @@ export function Delivery() {
     const handleCompleteDelivery = async (orderId: number) => {
         setProcessingId(orderId)
         try {
-            await fetchApi(`/orders/${orderId}/status`, {
-                method: 'POST',
-                body: JSON.stringify({ status: 'completed' })
+            const order = orders.find(o => o.id === orderId)
+            if (!order) return
+
+            if (order.paymentMethod !== 'cash' && order.paymentStatus !== 'paid') {
+                addToast('error', 'Pago pendiente', 'Este pedido debe estar pagado antes de completar la entrega.')
+                return
+            }
+
+            const updates: Partial<Order> = { status: 'completed' }
+            const shouldUpdateCashSession = order.paymentMethod === 'cash' && order.paymentStatus !== 'paid'
+            if (shouldUpdateCashSession) {
+                updates.paymentStatus = 'paid'
+                updates.paidAmount = order.total
+            }
+
+            await fetchApi(`/orders/${orderId}`, {
+                method: 'PUT',
+                body: JSON.stringify(updates)
             })
 
-            const order = orders.find(o => o.id === orderId)
-            if (order && order.paymentStatus !== 'paid') {
-                // Nota: Esto idealmente deberia ir al endpoint de pagos, pero por simplicidad
-                // dejamos que el cajero cierre la caja o implementamos endpoint de pago rapido aqui.
-                // Por ahora solo completamos la orden.
+            if (shouldUpdateCashSession) {
+                const activeSession = await fetchApi<CashSession | null>('/cash-sessions/active')
+                if (activeSession?.id) {
+                    const cashUpdates = {
+                        cashSales: (activeSession.cashSales || 0) + order.total,
+                        totalSales: (activeSession.totalSales || 0) + order.total,
+                        ordersCount: (activeSession.ordersCount || 0) + 1
+                    }
+                    await fetchApi(`/cash-sessions/${activeSession.id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(cashUpdates)
+                    })
+                }
             }
 
             addToast('success', 'Entregado!', 'Pedido completado exitosamente')
@@ -381,6 +415,17 @@ export function Delivery() {
                                     <Copy size={16} />
                                     Copiar direccion
                                 </button>
+                                {order.customerPhone && (
+                                    <a
+                                        className={styles.quickBtn}
+                                        href={getWhatsAppMessageUrl(order, activeTab === 'pending' ? 'on_the_way' : 'delivered')}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        <Phone size={16} />
+                                        WhatsApp
+                                    </a>
+                                )}
                                 {order.customerAddress && (
                                     <a
                                         className={styles.quickBtn}

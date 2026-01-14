@@ -24,7 +24,7 @@ import {
 import type { Order, Product, Category } from '@/types'
 import styles from './Reports.module.css'
 
-type Period = 'today' | 'week' | 'month' | 'all'
+type Period = 'today' | 'week' | 'month' | 'all' | 'custom'
 
 export function Reports() {
     const [period, setPeriod] = useState<Period>('today')
@@ -34,6 +34,8 @@ export function Reports() {
     const [isLoading, setIsLoading] = useState(true)
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+    const [customStart, setCustomStart] = useState('')
+    const [customEnd, setCustomEnd] = useState('')
 
     const handleExportExcel = () => {
         if (completedOrders.length === 0) return
@@ -129,6 +131,15 @@ export function Reports() {
         loadData()
     }, [loadData])
 
+    const getOrderTimestamp = (order: Order) =>
+        new Date(order.completedAt || order.confirmedAt || order.createdAt)
+
+    const parseDateInput = (value: string) => {
+        const [year, month, day] = value.split('-').map(Number)
+        if (!year || !month || !day) return null
+        return new Date(year, month - 1, day)
+    }
+
     // Memorizar órdenes filtradas por el período actual
     const paidOrders = useMemo(() => {
         return allCompletedOrders.filter(order => order.paymentStatus === 'paid')
@@ -137,8 +148,6 @@ export function Reports() {
     const completedOrders = useMemo(() => {
         const now = new Date()
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-        const getOrderTimestamp = (order: Order) =>
-            new Date(order.completedAt || order.confirmedAt || order.createdAt)
 
         switch (period) {
             case 'today':
@@ -154,11 +163,22 @@ export function Reports() {
                 const monthAgo = new Date(today)
                 monthAgo.setMonth(monthAgo.getMonth() - 1)
                 return paidOrders.filter(order => getOrderTimestamp(order) >= monthAgo)
+            case 'custom': {
+                const startDate = customStart ? parseDateInput(customStart) : null
+                const endDate = customEnd ? parseDateInput(customEnd) : null
+                if (endDate) endDate.setHours(23, 59, 59, 999)
+                return paidOrders.filter(order => {
+                    const orderDate = getOrderTimestamp(order)
+                    if (startDate && orderDate < startDate) return false
+                    if (endDate && orderDate > endDate) return false
+                    return true
+                })
+            }
             case 'all':
             default:
                 return paidOrders
         }
-    }, [paidOrders, period])
+    }, [paidOrders, period, customStart, customEnd])
 
     // Métricas generales
     const totalSales = completedOrders.reduce((acc, curr) => acc + curr.total, 0)
@@ -294,7 +314,8 @@ export function Reports() {
         today: 'Hoy',
         week: 'Semana',
         month: 'Mes',
-        all: 'Todo'
+        all: 'Todo',
+        custom: 'Rango'
     }
 
     if (isLoading) {
@@ -342,6 +363,23 @@ export function Reports() {
                             </button>
                         ))}
                     </div>
+                    {period === 'custom' && (
+                        <div className={styles.customRange}>
+                            <input
+                                type="date"
+                                value={customStart}
+                                onChange={(e) => setCustomStart(e.target.value)}
+                                className={styles.dateInput}
+                            />
+                            <span className={styles.rangeSeparator}>-</span>
+                            <input
+                                type="date"
+                                value={customEnd}
+                                onChange={(e) => setCustomEnd(e.target.value)}
+                                className={styles.dateInput}
+                            />
+                        </div>
+                    )}
                 </div>
             </header>
 
@@ -399,46 +437,50 @@ export function Reports() {
                 <div className={styles.chartCard}>
                     <h3><Clock size={18} /> Ventas por Hora</h3>
                     <div className={styles.chartContainer}>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <LineChart data={hourlyData}>
-                                <CartesianGrid
-                                    strokeDasharray="3 3"
-                                    vertical={false}
-                                    stroke="var(--color-border)"
-                                    strokeOpacity={0.4}
-                                />
-                                <XAxis
-                                    dataKey="hour"
-                                    stroke="var(--color-border)"
-                                    tick={{ fill: 'var(--color-text-muted)' }}
-                                    fontSize={12}
-                                />
-                                <YAxis
-                                    stroke="var(--color-border)"
-                                    tick={{ fill: 'var(--color-text-muted)' }}
-                                    fontSize={12}
-                                    tickFormatter={(v) => `$${v / 1000}k`}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        background: 'var(--color-bg-card)',
-                                        border: '1px solid var(--color-border)',
-                                        borderRadius: '8px',
-                                        color: 'var(--color-text)'
-                                    }}
-                                    itemStyle={{ color: 'var(--color-text)' }}
-                                    formatter={(value: any) => [formatPrice(value), 'Ventas']}
-                                />
-                                <Line
-                                    type="monotone"
-                                    dataKey="amount"
-                                    stroke="#FF6B35"
-                                    strokeWidth={3}
-                                    dot={{ r: 4, fill: '#FF6B35' }}
-                                    activeDot={{ r: 6 }}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
+                        {hourlyData.length === 0 ? (
+                            <div className={styles.emptyChart}>Sin ventas en este periodo.</div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={hourlyData}>
+                                    <CartesianGrid
+                                        strokeDasharray="3 3"
+                                        vertical={false}
+                                        stroke="var(--color-border)"
+                                        strokeOpacity={0.4}
+                                    />
+                                    <XAxis
+                                        dataKey="hour"
+                                        stroke="var(--color-border)"
+                                        tick={{ fill: 'var(--color-text-muted)' }}
+                                        fontSize={12}
+                                    />
+                                    <YAxis
+                                        stroke="var(--color-border)"
+                                        tick={{ fill: 'var(--color-text-muted)' }}
+                                        fontSize={12}
+                                        tickFormatter={(v) => `$${v / 1000}k`}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            background: 'var(--color-bg-card)',
+                                            border: '1px solid var(--color-border)',
+                                            borderRadius: '8px',
+                                            color: 'var(--color-text)'
+                                        }}
+                                        itemStyle={{ color: 'var(--color-text)' }}
+                                        formatter={(value: any) => [formatPrice(value), 'Ventas']}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="amount"
+                                        stroke="#FF6B35"
+                                        strokeWidth={3}
+                                        dot={{ r: 4, fill: '#FF6B35' }}
+                                        activeDot={{ r: 6 }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
 
@@ -446,40 +488,44 @@ export function Reports() {
                 <div className={styles.chartCard}>
                     <h3><TrendingUp size={18} /> Productos Estrella</h3>
                     <div className={styles.chartContainer}>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={topProductsData} layout="vertical">
-                                <CartesianGrid
-                                    strokeDasharray="3 3"
-                                    horizontal={false}
-                                    stroke="var(--color-border)"
-                                    strokeOpacity={0.4}
-                                />
-                                <XAxis type="number" hide />
-                                <YAxis
-                                    dataKey="name"
-                                    type="category"
-                                    stroke="var(--color-border)"
-                                    tick={{ fill: 'var(--color-text-muted)' }}
-                                    fontSize={10}
-                                    width={100}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        background: 'var(--color-bg-card)',
-                                        border: '1px solid var(--color-border)',
-                                        borderRadius: '8px',
-                                        color: 'var(--color-text)'
-                                    }}
-                                    itemStyle={{ color: 'var(--color-text)' }}
-                                    formatter={(value: any) => [value, 'Unidades']}
-                                />
-                                <Bar dataKey="qty" radius={[0, 4, 4, 0]}>
-                                    {topProductsData.map((_, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
+                        {topProductsData.length === 0 ? (
+                            <div className={styles.emptyChart}>Sin productos vendidos en este periodo.</div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={topProductsData} layout="vertical">
+                                    <CartesianGrid
+                                        strokeDasharray="3 3"
+                                        horizontal={false}
+                                        stroke="var(--color-border)"
+                                        strokeOpacity={0.4}
+                                    />
+                                    <XAxis type="number" hide />
+                                    <YAxis
+                                        dataKey="name"
+                                        type="category"
+                                        stroke="var(--color-border)"
+                                        tick={{ fill: 'var(--color-text-muted)' }}
+                                        fontSize={10}
+                                        width={100}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            background: 'var(--color-bg-card)',
+                                            border: '1px solid var(--color-border)',
+                                            borderRadius: '8px',
+                                            color: 'var(--color-text)'
+                                        }}
+                                        itemStyle={{ color: 'var(--color-text)' }}
+                                        formatter={(value: any) => [value, 'Unidades']}
+                                    />
+                                    <Bar dataKey="qty" radius={[0, 4, 4, 0]}>
+                                        {topProductsData.map((_, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
 
@@ -487,36 +533,40 @@ export function Reports() {
                 <div className={styles.chartCard}>
                     <h3><LayoutGrid size={18} /> Ventas por Categoría</h3>
                     <div className={styles.chartContainer}>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <PieChart>
-                                <Pie
-                                    data={categoryData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {categoryData.map((_, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    contentStyle={{
-                                        background: 'var(--color-bg-card)',
-                                        border: '1px solid var(--color-border)',
-                                        borderRadius: '8px',
-                                        color: 'var(--color-text)'
-                                    }}
-                                    itemStyle={{ color: 'var(--color-text)' }}
-                                    formatter={(value: any) => [formatPrice(value), 'Total']}
-                                />
-                                <Legend formatter={(value) => (
-                                    <span style={{ color: 'var(--color-text)' }}>{value}</span>
-                                )} />
-                            </PieChart>
-                        </ResponsiveContainer>
+                        {categoryData.length === 0 ? (
+                            <div className={styles.emptyChart}>Sin datos de categorias en este periodo.</div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <PieChart>
+                                    <Pie
+                                        data={categoryData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {categoryData.map((_, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip
+                                        contentStyle={{
+                                            background: 'var(--color-bg-card)',
+                                            border: '1px solid var(--color-border)',
+                                            borderRadius: '8px',
+                                            color: 'var(--color-text)'
+                                        }}
+                                        itemStyle={{ color: 'var(--color-text)' }}
+                                        formatter={(value: any) => [formatPrice(value), 'Total']}
+                                    />
+                                    <Legend formatter={(value) => (
+                                        <span style={{ color: 'var(--color-text)' }}>{value}</span>
+                                    )} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
 
@@ -524,36 +574,40 @@ export function Reports() {
                 <div className={styles.chartCard}>
                     <h3><CreditCard size={18} /> Métodos de Pago</h3>
                     <div className={styles.chartContainer}>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <PieChart>
-                                <Pie
-                                    data={paymentMethodData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {paymentMethodData.map((_, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    contentStyle={{
-                                        background: 'var(--color-bg-card)',
-                                        border: '1px solid var(--color-border)',
-                                        borderRadius: '8px',
-                                        color: 'var(--color-text)'
-                                    }}
-                                    itemStyle={{ color: 'var(--color-text)' }}
-                                    formatter={(value: any) => [formatPrice(value), 'Total']}
-                                />
-                                <Legend formatter={(value) => (
-                                    <span style={{ color: 'var(--color-text)' }}>{value}</span>
-                                )} />
-                            </PieChart>
-                        </ResponsiveContainer>
+                        {paymentMethodData.length === 0 ? (
+                            <div className={styles.emptyChart}>Sin ventas registradas en este periodo.</div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <PieChart>
+                                    <Pie
+                                        data={paymentMethodData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {paymentMethodData.map((_, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip
+                                        contentStyle={{
+                                            background: 'var(--color-bg-card)',
+                                            border: '1px solid var(--color-border)',
+                                            borderRadius: '8px',
+                                            color: 'var(--color-text)'
+                                        }}
+                                        itemStyle={{ color: 'var(--color-text)' }}
+                                        formatter={(value: any) => [formatPrice(value), 'Total']}
+                                    />
+                                    <Legend formatter={(value) => (
+                                        <span style={{ color: 'var(--color-text)' }}>{value}</span>
+                                    )} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             </div>
@@ -604,7 +658,10 @@ export function Reports() {
 
                                     <tbody>
 
-                                        {completedOrders.slice(-5).reverse().map((order) => (
+                                        {[...completedOrders]
+                                            .sort((a, b) => getOrderTimestamp(b).getTime() - getOrderTimestamp(a).getTime())
+                                            .slice(0, 5)
+                                            .map((order) => (
 
                                             <tr key={order.id}>
 
@@ -641,6 +698,11 @@ export function Reports() {
                                             </tr>
 
                                         ))}
+                                        {completedOrders.length === 0 && (
+                                            <tr>
+                                                <td colSpan={5} className={styles.emptyTable}>Sin pedidos en este periodo.</td>
+                                            </tr>
+                                        )}
 
                                     </tbody>
 
@@ -708,7 +770,9 @@ export function Reports() {
 
                                                                                     <tbody>
 
-                                                                                        {[...completedOrders].reverse().map((order) => (
+                                                                                        {[...completedOrders]
+                                                                                            .sort((a, b) => getOrderTimestamp(b).getTime() - getOrderTimestamp(a).getTime())
+                                                                                            .map((order) => (
 
                                                                                             <tr key={order.id}>
 
@@ -791,6 +855,11 @@ export function Reports() {
                                                         </tr>
 
                                                     ))}
+                                                    {completedOrders.length === 0 && (
+                                                        <tr>
+                                                            <td colSpan={7} className={styles.emptyTable}>Sin pedidos en este periodo.</td>
+                                                        </tr>
+                                                    )}
 
                                                 </tbody>
 

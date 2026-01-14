@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { fetchApi } from '@/services/api'
 import { usePolling } from '@/hooks/usePolling'
 import { useToast } from '@/context/ToastContext'
-import { Users, Receipt, Plus, Loader2, ArrowRightLeft } from 'lucide-react'
+import { Users, Receipt, Plus, Loader2, ArrowRightLeft, XCircle } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { PaymentModal } from '@/components/payment/PaymentModal'
 import type { TableStatus, RestaurantTable, Order } from '@/types'
@@ -42,6 +42,9 @@ export function Tables() {
     const [isOpening, setIsOpening] = useState(false)
     const [transferTable, setTransferTable] = useState<RestaurantTable | null>(null)
     const [transferTargetId, setTransferTargetId] = useState<number | null>(null)
+    const [cancelOrder, setCancelOrder] = useState<Order | null>(null)
+    const [showCancelModal, setShowCancelModal] = useState(false)
+    const [isCancelling, setIsCancelling] = useState(false)
 
     const { hasPermission } = useAuthStore()
     const canTransfer = hasPermission('canManageCash')
@@ -207,6 +210,32 @@ export function Tables() {
         loadData() // Recargar para ver la mesa libre
     }
 
+    const handleOpenCancelModal = (order: Order) => {
+        setCancelOrder(order)
+        setShowCancelModal(true)
+    }
+
+    const handleCancelOrder = async () => {
+        if (!cancelOrder) return
+        setIsCancelling(true)
+        try {
+            await fetchApi(`/orders/${cancelOrder.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ status: 'cancelled' })
+            })
+            await loadData()
+            addToast('info', 'Pedido cancelado', `Pedido ${cancelOrder.orderNumber} cancelado`)
+            setShowCancelModal(false)
+            setCancelOrder(null)
+            setSelectedTable(null)
+        } catch (error) {
+            console.error('Error canceling order:', error)
+            addToast('error', 'Error', 'No se pudo cancelar el pedido')
+        } finally {
+            setIsCancelling(false)
+        }
+    }
+
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('es-CO', {
             style: 'currency',
@@ -308,6 +337,16 @@ export function Tables() {
                                     <span>Transferir Mesa</span>
                                 </button>
                             )}
+
+                            {getTableOrder(selectedTable) && (
+                                <button
+                                    className={`${styles.optionBtn} ${styles.optionDanger}`}
+                                    onClick={() => handleOpenCancelModal(getTableOrder(selectedTable)!)}
+                                >
+                                    <XCircle size={20} />
+                                    <span>Cancelar Pedido</span>
+                                </button>
+                            )}
                         </div>
 
                         <button
@@ -386,6 +425,38 @@ export function Tables() {
                         <button className={styles.cancelBtn} onClick={() => setTransferTable(null)}>
                             Cancelar
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {showCancelModal && cancelOrder && (
+                <div className={styles.optionsOverlay} onClick={() => setShowCancelModal(false)}>
+                    <div className={styles.cancelModal} onClick={e => e.stopPropagation()}>
+                        <h3 className={styles.optionsTitle}>Cancelar pedido</h3>
+                        <div className={styles.cancelSummary}>
+                            <p>Vas a cancelar el pedido <strong>{cancelOrder.orderNumber}</strong>.</p>
+                            <p className={styles.cancelHint}>
+                                {cancelOrder.paymentStatus === 'paid'
+                                    ? 'Se realizará un reverso en caja y la mesa quedará disponible.'
+                                    : 'La mesa quedará disponible.'}
+                            </p>
+                        </div>
+                        <div className={styles.cancelActions}>
+                            <button
+                                className={styles.cancelGhostBtn}
+                                onClick={() => setShowCancelModal(false)}
+                                disabled={isCancelling}
+                            >
+                                Volver
+                            </button>
+                            <button
+                                className={styles.cancelConfirmBtn}
+                                onClick={handleCancelOrder}
+                                disabled={isCancelling}
+                            >
+                                {isCancelling ? 'Cancelando...' : 'Confirmar cancelación'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

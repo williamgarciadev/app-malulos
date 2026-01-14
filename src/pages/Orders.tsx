@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { fetchApi } from '@/services/api'
+import { usePolling } from '@/hooks/usePolling'
 import { useCartStore } from '@/stores/cartStore'
 import { useToast } from '@/context/ToastContext'
 import { generateKitchenTicket } from '@/services/ticketService'
@@ -34,6 +35,8 @@ export function Orders() {
     const [notes, setNotes] = useState('')
     const [showCart, setShowCart] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
+    const [pendingOrders, setPendingOrders] = useState<Order[]>([])
+    const [isPendingLoading, setIsPendingLoading] = useState(false)
     const [topProducts, setTopProducts] = useState<Product[]>([])
     const [addOnProducts, setAddOnProducts] = useState<Product[]>([])
     const [deliveryPaymentMethod, setDeliveryPaymentMethod] = useState<PaymentMethod>('cash')
@@ -82,6 +85,23 @@ export function Orders() {
         }
     }
 
+    const loadPendingOrders = useCallback(async () => {
+        setIsPendingLoading(true)
+        try {
+            const orders = await fetchApi<Order[]>('/orders?active=true')
+            const pending = orders.filter(order =>
+                order.paymentStatus !== 'paid' &&
+                order.status !== 'cancelled' &&
+                order.status !== 'completed'
+            )
+            setPendingOrders(pending)
+        } catch (error) {
+            console.error('Error loading pending orders:', error)
+        } finally {
+            setIsPendingLoading(false)
+        }
+    }, [])
+
     // Cargar datos iniciales
     useEffect(() => {
         const loadInitialData = async () => {
@@ -116,6 +136,12 @@ export function Orders() {
         }
         loadInitialData()
     }, [])
+
+    useEffect(() => {
+        loadPendingOrders()
+    }, [loadPendingOrders])
+
+    usePolling(loadPendingOrders, 15000)
 
     // Configurar tipo de pedido y mesa
     useEffect(() => {
@@ -154,6 +180,10 @@ export function Orders() {
         } else if (tableId) {
             cart.setOrderType('dine-in')
             cart.setTable(parseInt(tableId))
+            cart.setCustomer('', '', '', null)
+        } else {
+            cart.setOrderType('takeout')
+            cart.setTable(null)
             cart.setCustomer('', '', '', null)
         }
 
@@ -220,6 +250,10 @@ export function Orders() {
 
     const handleSendOrder = async () => {
         if (cart.items.length === 0) return
+        if (cart.orderType === 'dine-in' && !tableId) {
+            addToast('error', 'Selecciona tipo', 'Usa Mesas para pedidos en mesa o elige Domicilio/Para llevar.')
+            return
+        }
         if (cart.orderType === 'delivery') {
             if (!cart.customerName.trim() || !cart.customerPhone.trim() || !cart.customerAddress.trim()) {
                 addToast('error', 'Faltan datos', 'Completa nombre, telefono y direccion para el delivery')
@@ -329,6 +363,15 @@ export function Orders() {
         }).format(price)
     }
 
+    const getPendingLabel = (order: Order) => {
+        if (order.tableName) return order.tableName
+        if (order.tableId) return `Mesa ${order.tableId}`
+        if (order.type === 'delivery') return 'Domicilio'
+        if (order.type === 'takeout') return 'Para llevar'
+        if (order.origin === 'telegram') return 'Telegram'
+        return 'Pedido'
+    }
+
     const calculateProductPrice = () => {
         if (!selectedProduct) return 0
         let price = selectedProduct.basePrice
@@ -349,10 +392,12 @@ export function Orders() {
         cart.customerAddress.trim()
     )
     const [deliveryExpanded, setDeliveryExpanded] = useState(true)
+    const showOrderTypePicker = !tableId
 
     useEffect(() => {
-        if (cart.orderType === 'delivery') {
-            setDeliveryExpanded(!deliveryComplete)
+        if (cart.orderType !== 'delivery') return
+        if (!deliveryComplete) {
+            setDeliveryExpanded(true)
         }
     }, [cart.orderType, deliveryComplete])
 
@@ -390,6 +435,53 @@ export function Orders() {
                     )}
                 </button>
             </header>
+
+            <section className={styles.pendingPayments}>
+                <div className={styles.pendingPaymentsHeader}>
+                    <div>
+                        <h2>Pedidos pendientes de pago</h2>
+                        <p>Incluye takeout, domicilios y pedidos sin pago confirmado.</p>
+                    </div>
+                    <span className={styles.pendingPaymentsCount}>{pendingOrders.length}</span>
+                </div>
+                {isPendingLoading ? (
+                    <div className={styles.pendingPaymentsEmpty}>Cargando pendientes...</div>
+                ) : pendingOrders.length === 0 ? (
+                    <div className={styles.pendingPaymentsEmpty}>Todo al día.</div>
+                ) : (
+                    <div className={styles.pendingPaymentsList}>
+                        {pendingOrders.slice(0, 5).map(order => (
+                            <div key={order.id} className={styles.pendingPaymentsItem}>
+                                <div>
+                                    <span className={styles.pendingPaymentsOrder}>Pedido {order.orderNumber}</span>
+                                    <span className={styles.pendingPaymentsMeta}>{getPendingLabel(order)}</span>
+                                </div>
+                                <span className={styles.pendingPaymentsTotal}>{formatPrice(order.total)}</span>
+                            </div>
+                        ))}
+                        {pendingOrders.length > 5 && (
+                            <span className={styles.pendingPaymentsMore}>Y {pendingOrders.length - 5} más...</span>
+                        )}
+                    </div>
+                )}
+            </section>
+
+            {showOrderTypePicker && (
+                <section className={styles.orderTypePicker}>
+                    <button
+                        className={`${styles.typeBtn} ${cart.orderType === 'delivery' ? styles.typeActive : ''}`}
+                        onClick={() => cart.setOrderType('delivery')}
+                    >
+                        Domicilio
+                    </button>
+                    <button
+                        className={`${styles.typeBtn} ${cart.orderType === 'takeout' ? styles.typeActive : ''}`}
+                        onClick={() => cart.setOrderType('takeout')}
+                    >
+                        Para llevar
+                    </button>
+                </section>
+            )}
 
             {cart.orderType === 'delivery' && (
                 <section className={`${styles.deliveryBar} ${!deliveryComplete ? styles.deliveryBarWarning : ''}`}>

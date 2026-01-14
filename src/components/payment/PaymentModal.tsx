@@ -105,8 +105,7 @@ export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: P
                     status: 'completed',
                     paymentStatus: 'paid',
                     paymentMethod,
-                    paidAmount,
-                    completedAt
+                    paidAmount
                 })
             })
 

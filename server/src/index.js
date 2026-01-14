@@ -4,7 +4,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { initSchema, pool } from './config/database.js';
-import { Category, RestaurantTable, User, CashSession, Config } from './models/index.js';
+import { Category, RestaurantTable, User, CashSession, Config, CashMovement } from './models/index.js';
 import { Product } from './models/Product.js';
 import { Order } from './models/Order.js';
 import { Customer } from './models/Customer.js';
@@ -149,7 +149,51 @@ app.post('/api/orders', async (req, res) => {
 app.put('/api/orders/:id', async (req, res) => {
     try {
         const existingOrder = await Order.getById(req.params.id);
-        const order = await Order.update(req.params.id, req.body);
+        const updates = { ...req.body };
+        if (updates.status === 'confirmed') {
+            updates.confirmedAt = new Date();
+        }
+        if (updates.status === 'ready') {
+            updates.readyAt = new Date();
+        }
+        if (updates.status === 'completed') {
+            updates.completedAt = new Date();
+        }
+
+        const order = await Order.update(req.params.id, updates);
+        if (updates.status === 'cancelled' && existingOrder?.tableId) {
+            await RestaurantTable.update(existingOrder.tableId, {
+                status: 'available',
+                currentOrderId: null
+            });
+        }
+        if (
+            updates.status === 'cancelled' &&
+            existingOrder?.status !== 'cancelled' &&
+            existingOrder?.paymentStatus === 'paid'
+        ) {
+            const activeSession = await CashSession.getActive();
+            if (activeSession) {
+                const total = Number(existingOrder.total) || 0;
+                const updatesSession = {
+                    totalSales: Math.max(0, (Number(activeSession.totalSales) || 0) - total),
+                    ordersCount: Math.max(0, (Number(activeSession.ordersCount) || 0) - 1)
+                };
+                const method = existingOrder.paymentMethod;
+                if (method === 'cash') {
+                    updatesSession.cashSales = Math.max(0, (Number(activeSession.cashSales) || 0) - total);
+                } else if (method === 'card') {
+                    updatesSession.cardSales = Math.max(0, (Number(activeSession.cardSales) || 0) - total);
+                } else if (method === 'transfer') {
+                    updatesSession.transferSales = Math.max(0, (Number(activeSession.transferSales) || 0) - total);
+                } else if (method === 'nequi') {
+                    updatesSession.nequiSales = Math.max(0, (Number(activeSession.nequiSales) || 0) - total);
+                } else if (method === 'daviplata') {
+                    updatesSession.davipplataSales = Math.max(0, (Number(activeSession.davipplataSales) || 0) - total);
+                }
+                await CashSession.update(activeSession.id, updatesSession);
+            }
+        }
 
         if (existingOrder && order && order.origin === 'telegram' && existingOrder.status !== order.status) {
             const customer = order.customerId ? await Customer.getById(order.customerId) : null;
@@ -183,6 +227,35 @@ app.post('/api/orders/:id/status', async (req, res) => {
 
         const existingOrder = await Order.getById(req.params.id);
         const order = await Order.update(req.params.id, { status });
+        if (status === 'cancelled' && existingOrder?.tableId) {
+            await RestaurantTable.update(existingOrder.tableId, {
+                status: 'available',
+                currentOrderId: null
+            });
+        }
+        if (status === 'cancelled' && existingOrder?.status !== 'cancelled' && existingOrder?.paymentStatus === 'paid') {
+            const activeSession = await CashSession.getActive();
+            if (activeSession) {
+                const total = Number(existingOrder.total) || 0;
+                const updatesSession = {
+                    totalSales: Math.max(0, (Number(activeSession.totalSales) || 0) - total),
+                    ordersCount: Math.max(0, (Number(activeSession.ordersCount) || 0) - 1)
+                };
+                const method = existingOrder.paymentMethod;
+                if (method === 'cash') {
+                    updatesSession.cashSales = Math.max(0, (Number(activeSession.cashSales) || 0) - total);
+                } else if (method === 'card') {
+                    updatesSession.cardSales = Math.max(0, (Number(activeSession.cardSales) || 0) - total);
+                } else if (method === 'transfer') {
+                    updatesSession.transferSales = Math.max(0, (Number(activeSession.transferSales) || 0) - total);
+                } else if (method === 'nequi') {
+                    updatesSession.nequiSales = Math.max(0, (Number(activeSession.nequiSales) || 0) - total);
+                } else if (method === 'daviplata') {
+                    updatesSession.davipplataSales = Math.max(0, (Number(activeSession.davipplataSales) || 0) - total);
+                }
+                await CashSession.update(activeSession.id, updatesSession);
+            }
+        }
 
         if (existingOrder && order && order.origin === 'telegram' && existingOrder.status !== order.status) {
             const customer = order.customerId ? await Customer.getById(order.customerId) : null;
@@ -259,6 +332,12 @@ app.get('/api/cash-sessions/active', async (req, res) => {
 
 app.post('/api/cash-sessions', async (req, res) => {
     try {
+        const activeSession = await CashSession.getActive();
+        if (activeSession) {
+            return res.status(409).json({
+                error: 'Ya hay una caja abierta. Cierra la caja antes de abrir otra.'
+            });
+        }
         const session = await CashSession.create(req.body);
         res.status(201).json(session);
     } catch (error) {
@@ -277,8 +356,58 @@ app.put('/api/cash-sessions/:id', async (req, res) => {
 
 app.post('/api/cash-sessions/:id/close', async (req, res) => {
     try {
+        const tables = await RestaurantTable.getAll();
+        const unavailableTables = tables.filter(table => table.status !== 'available');
+        const unpaidOrdersResult = await pool.query(`
+            SELECT id, orderNumber, tableId, tableName, status, paymentStatus
+            FROM orders
+            WHERE status NOT IN ('completed', 'cancelled')
+              AND (paymentStatus IS NULL OR paymentStatus <> 'paid')
+        `);
+        const unpaidOrders = unpaidOrdersResult.rows;
+        if (unavailableTables.length > 0 || unpaidOrders.length > 0) {
+            const issues = [];
+            if (unavailableTables.length > 0) {
+                const tableLabels = unavailableTables
+                    .map(table => table.name || `Mesa ${table.number}`)
+                    .join(', ');
+                issues.push(`mesas no disponibles (${unavailableTables.length}): ${tableLabels}`);
+            }
+            if (unpaidOrders.length > 0) {
+                const orderLabels = unpaidOrders
+                    .map(order => order.orderNumber || `Pedido ${order.id}`)
+                    .join(', ');
+                issues.push(`pedidos sin pagar (${unpaidOrders.length}): ${orderLabels}`);
+            }
+            return res.status(400).json({
+                error: `No se puede cerrar la caja, hay ${issues.join(' y ')}.`
+            });
+        }
         const session = await CashSession.close(req.params.id, req.body);
         res.json(session);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ===== MOVIMIENTOS DE CAJA =====
+app.post('/api/cash-movements', async (req, res) => {
+    try {
+        const result = await CashMovement.create(req.body);
+        res.status(201).json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/cash-movements', async (req, res) => {
+    try {
+        const sessionId = Number(req.query.sessionId);
+        if (!Number.isFinite(sessionId)) {
+            return res.status(400).json({ error: 'sessionId es requerido' });
+        }
+        const movements = await CashMovement.getBySession(sessionId);
+        res.json(movements);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

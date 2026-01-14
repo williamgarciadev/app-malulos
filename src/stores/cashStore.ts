@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { fetchApi } from '@/services/api'
+import { fetchApi, cashMovementsApi } from '@/services/api'
 import type { CashSession } from '@/types'
 
 interface CashState {
@@ -84,25 +84,22 @@ export const useCashStore = create<CashState>((set, get) => ({
         }
     },
 
-    addMovement: async (type: 'in' | 'out', amount: number, _reason: string, _userId: number, _userName: string) => {
+    addMovement: async (type: 'in' | 'out', amount: number, reason: string, userId: number, userName: string) => {
         const { currentSession } = get()
         if (!currentSession || !currentSession.id) return
 
         try {
-            // Nota: El backend actualmente no tiene tabla de movimientos separada, 
-            // actualizamos directamente los totales en la sesión para simplificar.
-            const adjustment = type === 'in' ? amount : -amount
-            const updatedData = {
-                cashSales: (currentSession.cashSales || 0) + adjustment,
-                totalSales: (currentSession.totalSales || 0) + adjustment
-            }
-
-            const updatedSession = await fetchApi<CashSession>(`/cash-sessions/${currentSession.id}`, {
-                method: 'PUT',
-                body: JSON.stringify(updatedData)
+            const result = await cashMovementsApi.create({
+                sessionId: currentSession.id,
+                type,
+                amount,
+                reason,
+                userId,
+                userName,
+                createdAt: new Date()
             })
 
-            set({ currentSession: updatedSession })
+            set({ currentSession: result.session })
         } catch (error) {
             console.error('Error adding movement:', error)
             throw error
