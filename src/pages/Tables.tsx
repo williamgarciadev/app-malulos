@@ -75,7 +75,7 @@ export function Tables() {
 
     const getTableOrder = (table: RestaurantTable) => {
         if (table.status === 'available') return null
-        return activeOrders?.find(o => o.tableId === table.id)
+        return activeOrders?.find(o => o.tableId === table.id) || null
     }
 
     const getDisplayStatus = (table: RestaurantTable, order: Order | null): TableDisplayStatus => {
