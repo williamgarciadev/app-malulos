@@ -1,6 +1,6 @@
 # Plan de Despliegue y DevOps - Malulos POS
 
-## Estado: COMPLETADO
+## Estado: COMPLETADO Y OPTIMIZADO
 
 ---
 
@@ -24,6 +24,7 @@
     - Definir jobs de copy (SCP) y ejecución remota (SSH).
     - Configurar inyección de variables de entorno (creación de .env en remoto).
 - [x] Ajustar puertos para convivir con Nginx Proxy Manager (Web: 3001, API: 3000). <!-- id: 8 -->
+- [x] **OPTIMIZACIÓN:** Cambiar a estrategia de "Build en GitHub, Pull en VPS" (GHCR) para evitar timeouts y sobrecarga del VPS. <!-- id: 15 -->
 
 ### Fase 3: Kubernetes (Opcional) ☸️
 - [x] Crear carpeta `k8s`. <!-- id: 9 -->
@@ -35,21 +36,15 @@
 
 ---
 
-## Instrucciones Finales para el Usuario
+## Instrucciones Finales
 
 ### 1. Configuración de Dominios en NPM
-Entra a tu Nginx Proxy Manager (puerto 81 normalmente) y configura:
+*   **Dominio Frontend:** `malulos.tudominio.com` -> Forward Host: `malulos-web`, Port: 80.
+*   **Dominio API:** `api.malulos.tudominio.com` -> Forward Host: `malulos-api`, Port: 3000.
+*   **Red:** Asegurar que NPM esté en la red `malulos_net`.
 
-*   **Dominio:** `malulos.tudominio.com` (o el que uses)
-    *   **Forward Host:** `167.86.114.157` (Tu IP VPS)
-    *   **Forward Port:** `3001`
-    *   **Websockets Support:** Activado (Recomendado)
-    *   **SSL:** Request a new SSL Certificate (Let's Encrypt) -> Force SSL.
-
-*   **Dominio:** `api.malulos.tudominio.com`
-    *   **Forward Host:** `167.86.114.157` (Tu IP VPS)
-    *   **Forward Port:** `3000`
-    *   **SSL:** Request a new SSL Certificate -> Force SSL.
-
-### 2. Variables en GitHub
-Asegúrate de que el secreto `VITE_API_URL` en GitHub sea `https://api.malulos.tudominio.com` (con HTTPS, ya que NPM manejará el certificado).
+### 2. Actualización
+Cada vez que hagas un push a `main` o `master`:
+1. GitHub construirá las imágenes Docker.
+2. GitHub subirá las imágenes a GHCR (GitHub Container Registry).
+3. GitHub se conectará a tu VPS, descargará las nuevas versiones y reiniciará los contenedores en segundos.

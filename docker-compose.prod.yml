@@ -15,9 +15,7 @@ services:
       - malulos_net
 
   api:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
+    image: ghcr.io/williamgarciadev/app-malulos-api:latest
     container_name: malulos-api
     restart: unless-stopped
     environment:
@@ -32,11 +30,7 @@ services:
       - malulos_net
 
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: ${VITE_API_URL}
+    image: ghcr.io/williamgarciadev/app-malulos-web:latest
     container_name: malulos-web
     restart: unless-stopped
     expose:
