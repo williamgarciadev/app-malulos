@@ -316,8 +316,12 @@ export const initTelegramBot = (token) => {
         }
     });
 
-    bot.launch();
-    console.log('\u{1F916} Telegram Bot sincronizado con PostgreSQL.');
+    bot.launch().catch(err => {
+        console.warn('⚠️ Advertencia: No se pudo conectar con Telegram (problemas de red o token inválido). El bot no estará disponible, pero el servidor seguirá funcionando.');
+        console.warn('Error detallado:', err.message);
+    });
+    
+    console.log('\u{1F916} Telegram Bot inicializado (conexión en segundo plano).');
     return bot;
 };
 
