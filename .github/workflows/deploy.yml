@@ -80,6 +80,7 @@ jobs:
             echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
             echo "DATABASE_URL=postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@db:5432/${{ secrets.POSTGRES_DB }}" >> .env
             echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> .env
+            echo "DB_SSL=false" >> .env
 
             # Login al registro de GitHub (usando token temporal si es publico, o PAT si es privado)
             # NOTA: Para repos privados, necesitas un PAT. Para publicos, es automatico.
