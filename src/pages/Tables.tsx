@@ -308,46 +308,53 @@ export function Tables() {
                     <div className={styles.optionsModal} onClick={e => e.stopPropagation()}>
                         <h3 className={styles.optionsTitle}>{selectedTable.name}</h3>
 
-                        {getTableOrder(selectedTable) && (
-                            <div className={styles.orderInfo}>
-                                <span>Pedido actual:</span>
-                                <strong>{formatPrice(getTableOrder(selectedTable)!.total)}</strong>
-                            </div>
-                        )}
+                        {(() => {
+                            const currentOrder = getTableOrder(selectedTable);
+                            return (
+                                <>
+                                    {currentOrder && (
+                                        <div className={styles.orderInfo}>
+                                            <span>Pedido actual:</span>
+                                            <strong>{formatPrice(currentOrder.total)}</strong>
+                                        </div>
+                                    )}
 
-                        <div className={styles.optionsButtons}>
-                            <button className={styles.optionBtn} onClick={handleNewOrder}>
-                                <Plus size={20} />
-                                <span>Agregar Productos</span>
-                            </button>
+                                    <div className={styles.optionsButtons}>
+                                        <button className={styles.optionBtn} onClick={handleNewOrder}>
+                                            <Plus size={20} />
+                                            <span>Agregar Productos</span>
+                                        </button>
 
-                            {getTableOrder(selectedTable) && (
-                                <button
-                                    className={`${styles.optionBtn} ${styles.optionBill}`}
-                                    onClick={handleRequestBill}
-                                >
-                                    <Receipt size={20} />
-                                    <span>Pedir la Cuenta</span>
-                                </button>
-                            )}
+                                        {currentOrder && (
+                                            <button
+                                                className={`${styles.optionBtn} ${styles.optionBill}`}
+                                                onClick={handleRequestBill}
+                                            >
+                                                <Receipt size={20} />
+                                                <span>Pedir la Cuenta</span>
+                                            </button>
+                                        )}
 
-                            {canTransfer && getTableOrder(selectedTable) && (
-                                <button className={styles.optionBtn} onClick={handleTransfer}>
-                                    <ArrowRightLeft size={20} />
-                                    <span>Transferir Mesa</span>
-                                </button>
-                            )}
+                                        {canTransfer && currentOrder && (
+                                            <button className={styles.optionBtn} onClick={handleTransfer}>
+                                                <ArrowRightLeft size={20} />
+                                                <span>Transferir Mesa</span>
+                                            </button>
+                                        )}
 
-                            {getTableOrder(selectedTable) && (
-                                <button
-                                    className={`${styles.optionBtn} ${styles.optionDanger}`}
-                                    onClick={() => handleOpenCancelModal(getTableOrder(selectedTable) ?? null!)}
-                                >
-                                    <XCircle size={20} />
-                                    <span>Cancelar Pedido</span>
-                                </button>
-                            )}
-                        </div>
+                                        {currentOrder && (
+                                            <button
+                                                className={`${styles.optionBtn} ${styles.optionDanger}`}
+                                                onClick={() => handleOpenCancelModal(currentOrder)}
+                                            >
+                                                <XCircle size={20} />
+                                                <span>Cancelar Pedido</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                </>
+                            );
+                        })()}
 
                         <button
                             className={styles.cancelBtn}
