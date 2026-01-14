@@ -18,6 +18,9 @@ services:
     image: ghcr.io/williamgarciadev/app-malulos-api:latest
     container_name: malulos-api
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       DATABASE_URL: ${DATABASE_URL}
       PORT: 3000
