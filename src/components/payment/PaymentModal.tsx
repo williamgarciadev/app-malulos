@@ -95,7 +95,6 @@ export function PaymentModal({ order, tableName, onClose, onPaymentComplete }: P
         setIsProcessing(true)
 
         try {
-            const completedAt = new Date()
             const paidAmount = paymentMethod === 'cash' ? received : total
 
             // 1. Actualizar pedido como pagado

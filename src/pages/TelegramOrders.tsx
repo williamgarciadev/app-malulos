@@ -14,7 +14,6 @@ import {
     RefreshCw,
     Package,
     Clock,
-    AlertTriangle,
     Copy,
     Check,
     Volume2,

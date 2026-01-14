@@ -341,7 +341,7 @@ export function Tables() {
                             {getTableOrder(selectedTable) && (
                                 <button
                                     className={`${styles.optionBtn} ${styles.optionDanger}`}
-                                    onClick={() => handleOpenCancelModal(getTableOrder(selectedTable)!)}
+                                    onClick={() => handleOpenCancelModal(getTableOrder(selectedTable) ?? null!)}
                                 >
                                     <XCircle size={20} />
                                     <span>Cancelar Pedido</span>

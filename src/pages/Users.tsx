@@ -109,7 +109,8 @@ export function Users() {
         const roles = {
             admin: 'Administrador',
             cashier: 'Cajero',
-            waiter: 'Mesero'
+            waiter: 'Mesero',
+            delivery: 'Domiciliario'
         }
         return roles[role]
     }
@@ -118,7 +119,8 @@ export function Users() {
         const colors = {
             admin: 'var(--color-danger)',
             cashier: 'var(--color-success)',
-            waiter: 'var(--color-info)'
+            waiter: 'var(--color-info)',
+            delivery: 'var(--color-warning)'
         }
         return colors[role]
     }
