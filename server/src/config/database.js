@@ -7,8 +7,13 @@ if (!connectionString) {
     console.error('❌ ERROR: La variable de entorno DATABASE_URL es obligatoria.');
 }
 
-// Detectar si es desarrollo local (localhost) o producción
-const isLocalhost = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+// Detectar si es desarrollo local (localhost) o entorno Docker interno
+// Si el host es 'db', 'postgres', 'localhost' o IP local, asumimos que no necesita SSL.
+const isLocalOrInternal = 
+    connectionString.includes('localhost') || 
+    connectionString.includes('127.0.0.1') ||
+    connectionString.includes('@db:') ||
+    connectionString.includes('@postgres:');
 
 // Configuración del pool
 const poolConfig = {
@@ -16,12 +21,10 @@ const poolConfig = {
 };
 
 // SSL logic:
-// 1. If DB_SSL is explicitly 'false', disable SSL (useful for internal Docker networks).
-// 2. If localhost, disable SSL.
-// 3. Otherwise (Production Cloud), enable SSL with rejectUnauthorized: false.
+// Disable SSL if we detect local/internal connection OR if explicitly disabled via env var.
 const sslDisabled = process.env.DB_SSL === 'false';
 
-if (!isLocalhost && !sslDisabled) {
+if (!isLocalOrInternal && !sslDisabled) {
     poolConfig.ssl = {
         rejectUnauthorized: false
     };
@@ -31,7 +34,7 @@ export const pool = new Pool(poolConfig);
 
 export const query = (text, params) => pool.query(text, params);
 
-console.log(`🐘 Conector PostgreSQL preparado (${isLocalhost ? 'desarrollo local' : 'producción con SSL'}).`);
+console.log(`🐘 Conector PostgreSQL preparado (${isLocalOrInternal || sslDisabled ? 'local/interno sin SSL' : 'producción con SSL'}).`);
 
 export const initSchema = async () => {
     const tables = [
