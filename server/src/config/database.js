@@ -15,8 +15,13 @@ const poolConfig = {
     connectionString
 };
 
-// SSL solo en producción (servicios cloud como Render, Heroku, etc.)
-if (!isLocalhost) {
+// SSL logic:
+// 1. If DB_SSL is explicitly 'false', disable SSL (useful for internal Docker networks).
+// 2. If localhost, disable SSL.
+// 3. Otherwise (Production Cloud), enable SSL with rejectUnauthorized: false.
+const sslDisabled = process.env.DB_SSL === 'false';
+
+if (!isLocalhost && !sslDisabled) {
     poolConfig.ssl = {
         rejectUnauthorized: false
     };
