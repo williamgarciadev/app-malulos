@@ -29,12 +29,11 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          port: 2222
           source: "."
           target: "~/app-malulos"
           rm: true # Esto borra la carpeta destino antes de copiar (cuidado, asegura limpieza pero es lento si hay muchos archivos)
-          # Excluir carpetas pesadas/innecesarias
           strip_components: 0
-          exclude: "node_modules,dist,.git,.github"
 
       - name: Execute remote commands
         uses: appleboy/ssh-action@v1.0.3
@@ -42,6 +41,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          port: 2222
           script: |
             cd ~/app-malulos
             # Parar contenedores antiguos si es necesario (opcional)
