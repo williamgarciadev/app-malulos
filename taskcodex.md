@@ -7,3 +7,5 @@
 - Fix: replace bot emojis with unicode escapes to avoid mojibake.
 - Fix: replace mojibake text in Telegram bot with unicode escapes (ASCII-only).
 - Fix: normalize \u escapes to single backslash for JS unicode literals.
+- Doc: add Docker + NPM deployment steps for Malulos POS.
+- Ops: add docker-compose.prod.yml and env example for VPS deploy.

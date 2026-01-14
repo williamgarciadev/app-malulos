@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: malulos-web
+  namespace: malulos-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: malulos-web
+  template:
+    metadata:
+      labels:
+        app: malulos-web
+    spec:
+      containers:
+      - name: malulos-web
+        image: tu-usuario-dockerhub/malulos-web:latest # REEMPLAZAR con tu imagen real
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: malulos-ns
+spec:
+  type: NodePort # O LoadBalancer si tu proveedor lo soporta
+  selector:
+    app: malulos-web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30080 # Puerto fijo para acceso fácil (opcional)

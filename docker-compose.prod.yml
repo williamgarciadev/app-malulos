@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: malulos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - malulos_db_data:/var/lib/postgresql/data
+    networks:
+      - malulos_net
+
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: malulos-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      PORT: 3000
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    depends_on:
+      - db
+    expose:
+      - "3000"
+    networks:
+      - malulos_net
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    container_name: malulos-web
+    restart: unless-stopped
+    expose:
+      - "80"
+    networks:
+      - malulos_net
+
+networks:
+  malulos_net:
+    external: true
+    name: malulos_net
+
+volumes:
+  malulos_db_data:
