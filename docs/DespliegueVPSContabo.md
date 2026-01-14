@@ -60,31 +60,23 @@ El contenedor API no puede resolver dominios externos (`api.telegram.org`), arro
 
 **Diagnóstico:**
 *   Se probó forzar DNS `8.8.8.8` en `daemon.json` y `docker-compose`.
-*   Se probó reiniciar Docker y contenedores.
-*   El comando `getent hosts api.telegram.org` dentro del contenedor devuelve vacío.
-*   Conclusión: Bloqueo de tráfico UDP/DNS en la red de Contabo o firewall superior.
+*   Se detectó que la cadena `DOCKER-USER` de `iptables` tenía un `DROP all` al final que bloqueaba nuevas conexiones salientes desde los contenedores.
 
-**Acción Tomada:**
-Se envió correo a soporte Contabo solicitando revisión de bloqueo UDP puerto 53 saliente desde Docker.
+**Solución Definitiva (Firewall):**
+Se permitió el tráfico saliente desde la subred de Docker (`172.19.0.0/16`) insertando una regla de aceptación antes del bloqueo:
+```bash
+sudo iptables -I DOCKER-USER 5 -s 172.19.0.0/16 -j ACCEPT
+```
 
-**Contenido del correo enviado:**
-> **Asunto:** Outbound DNS/UDP traffic blocked on VPS 167.86.114.157 - Docker containers affected
-> 
-> Hello Contabo Support Team,
-> I am experiencing network connectivity issues with outbound DNS traffic on my VPS (IP: 167.86.114.157).
-> Specifically, my Docker containers are unable to resolve external domain names (e.g., api.telegram.org, registry.npmjs.org), returning the error: getaddrinfo EAI_AGAIN.
-> Diagnostic steps taken:
-> 1. I have configured Docker to use Google DNS (8.8.8.8) in /etc/docker/daemon.json.
-> 2. I have forced DNS in docker-compose.yml.
-> 3. Direct connectivity to IPs works (e.g., ping 8.8.8.8 works from the host), but DNS resolution from within Docker containers fails consistently with timeouts.
-> 4. My iptables OUTPUT policy is ACCEPT.
-> It seems that UDP traffic on port 53 originating from the Docker network interface/subnet might be getting dropped or rate-limited.
+**Persistencia:**
+Para que la regla sobreviva a reinicios:
+```bash
+sudo apt install -y iptables-persistent
+sudo netfilter-persistent save
+```
 
-**Próximos Pasos:**
-1.  Esperar respuesta de Contabo.
-2.  Si confirman desbloqueo, reiniciar Docker.
-3.  Si no hay solución, evaluar usar modo `network_mode: host` (no recomendado) o `/etc/hosts` estático.
-
+**Estado Final:**
+✅ Bot de Telegram operativo y DNS resolviendo correctamente. 🤖🚀
 ---
 
 ## 5. Comandos Útiles
